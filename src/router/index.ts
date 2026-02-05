@@ -21,7 +21,7 @@ const routes = [
     component: MainView,
     meta: {
       title: 'Главная',
-      requiresAuth: true
+      requiresAuth: false
     }
   },
   {

@@ -1,11 +1,6 @@
 <template>
   <div class="flex items-center gap-3 p-4 border rounded-lg">
-    <img 
-      :src="avatarUrl" 
-      alt="Аватар"
-      class="w-12 h-12 rounded-full"
-    />
-    
+    <Avatar :avatar-url="avatarUrl"></Avatar>
     <div>
       <h3 class="font-medium text-gray-900">
         {{ title }}
@@ -19,6 +14,8 @@
 
 
 <script setup lang="ts">
+import Avatar from './Avatar.vue';
+
 interface Props {
   avatarUrl: string
   title: string
