@@ -37,7 +37,7 @@
         :step="step"
         :pattern="pattern"
         :class="[
-          'w-full rounded-md transition-all duration-200 outline-none border-red-100 border-2',
+          'w-full rounded-lg transition-all duration-200 outline-none border-color border-2',
           baseInputClass,
           {
             'pl-10': prefix || $slots.prefix,
@@ -45,7 +45,7 @@
             'opacity-60 cursor-not-allowed': disabled,
             'cursor-default': readonly,
             'border-red-300 focus:border-red-500': error,
-            'border-gray-300 focus:border-blue-500': !error && !disabled,
+            'border-gray-300 focus:border-brand-default': !error && !disabled,
           }
         ]"
         @input="onInput"
@@ -220,6 +220,5 @@ input[type="number"] {
 input {
   transition-property: border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  color: red;
 }
 </style>
