@@ -35,10 +35,10 @@ import Button from "@/components/Button.vue";
 import Input from "@/components/Input.vue";
 import { ref } from "vue";
 
-import { useAuth } from "@/stores/auth";
+import { useUserStore } from "@/entities/user/user.store";
 import FormContainer from "./FormContainer.vue";
 
-const authStore = useAuth();
+const authStore = useUserStore();
 
 const nicknameModel = ref("");
 const roomModel = ref("");

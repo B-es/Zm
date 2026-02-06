@@ -1,4 +1,4 @@
-import { useAuth } from '@/stores/auth'
+import { useUserStore } from '@/entities/user/user.store'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const ConnectView = () => import('@/views/ConnectView.vue')
@@ -48,7 +48,7 @@ router.beforeEach((to, from, next) => {
 
   //Проверка доступа к комнате
   if (to.meta.requiresAuth) {
-    const authStore = useAuth()
+    const authStore = useUserStore()
 
     if (!authStore.isAuth) {
       // Если не в комнате, перенаправляем на домашнюю
