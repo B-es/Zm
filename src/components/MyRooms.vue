@@ -51,7 +51,7 @@ onMounted(async () => {
 });
 
 function selectRoom(room: Room) {
-    roomStore.setRoom(room.title, room.password);
+    roomStore.setRoom(room);
     router.push("/main");
 }
 

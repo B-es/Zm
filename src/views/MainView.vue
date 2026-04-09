@@ -12,14 +12,14 @@
             <AvatarBlock
                 :avatar-url="authStore.currentUser?.avatarUrl || url"
                 :title="authStore.currentUser?.nickname || ''"
-                :description="roomStore.roomTitle || ''"
+                :description="String(roomStore.roomTitle)"
             ></AvatarBlock>
         </div>
     </div>
     <div class="flex justify-evenly">
-        <CardSection title="Посмотрим"></CardSection>
-        <CardSection title="Сходим"></CardSection>
-        <CardSection title="Сделаем"></CardSection>
+        <CardSection title="Посмотрим" section="watch"></CardSection>
+        <CardSection title="Сходим" section="go"></CardSection>
+        <CardSection title="Сделаем" section="do"></CardSection>
     </div>
 </template>
 

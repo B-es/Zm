@@ -11,14 +11,8 @@ export const useRoomStore = defineStore("room", {
   }),
 
   actions: {
-    setRoom(roomName: string, roomPassword: string) {
-      this.room = {
-        id: crypto.randomUUID(),
-        title: roomName,
-        password: roomPassword,
-        createdBy: "",
-        createdAt: new Date().toISOString(),
-      };
+    setRoom(room: Room) {
+      this.room = room;
     },
 
     clearRoom() {
@@ -27,7 +21,6 @@ export const useRoomStore = defineStore("room", {
   },
 
   getters: {
-    // Геттеры для удобства (как вычисляемые поля)
     isRoomSet: (state) => state.room !== null,
     roomId: (state) => state.room?.id ?? "",
     roomTitle: (state) => state.room?.title ?? "",

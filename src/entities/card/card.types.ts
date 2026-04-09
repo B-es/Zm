@@ -1,4 +1,4 @@
-export type CardSection = 'watch' | 'go' | 'do';
+export type CardSection = "watch" | "go" | "do";
 
 export interface Card {
   id: string;
@@ -8,6 +8,8 @@ export interface Card {
   title: string;
   description: string;
 
+  createdBy: string;
+  createdAt: string;
   updatedAt: string;
   updatedBy: string;
 }

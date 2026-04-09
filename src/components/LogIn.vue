@@ -58,7 +58,7 @@ async function handleJoin() {
     loading.value = false;
 
     if (result.success && result.room) {
-        roomStore.setRoom(result.room.title, result.room.password);
+        roomStore.setRoom(result.room);
         router.push("/main");
     } else {
         error.value = result.error || "Ошибка входа";

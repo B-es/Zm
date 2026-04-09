@@ -275,8 +275,8 @@ describe("room.repository", () => {
       const result = await repo.getAllRooms(10, 0);
 
       expect(result).toHaveLength(2);
-      expect(result[0].title).toBe("Room 1");
-      expect(result[0].createdBy).toBe("u1");
+      expect(result[0]!.title).toBe("Room 1");
+      expect(result[0]!.createdBy).toBe("u1");
       expect(chain.order).toHaveBeenCalledWith("created_at", {
         ascending: false,
       });
@@ -325,7 +325,7 @@ describe("room.repository", () => {
       const result = await repo.getRoomsByUser("user-1");
 
       expect(result).toHaveLength(2);
-      expect(result[0].createdBy).toBe("user-1");
+      expect(result[0]!.createdBy).toBe("user-1");
       expect(chain.eq).toHaveBeenCalledWith("created_by", "user-1");
     });
 
