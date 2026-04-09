@@ -1,63 +1,78 @@
-import { useUserStore } from '@/entities/user/user.store'
-import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from "@/entities/user/user.store";
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "./entities/auth/auth.store";
 
-const ConnectView = () => import('@/views/ConnectView.vue')
-const MainView = () => import('@/views/MainView.vue')
-const NotFoundView = () => import('@/views/NotFoundView.vue')
+const ConnectView = () => import("@/views/ConnectView.vue");
+const MainView = () => import("@/views/MainView.vue");
+const AuthView = () => import("@/views/AuthView.vue");
+const NotFoundView = () => import("@/views/NotFoundView.vue");
 
 const routes = [
   {
-    path: '/',
-    name: 'connect',
+    path: "/",
+    name: "connect",
     component: ConnectView,
     meta: {
-      title: 'Zm - Соединение',
-      requiresAuth: false
-    }
+      title: "Zm - Соединение",
+      requiresAuth: true,
+    },
   },
   {
-    path: '/main',
-    name: 'main',
+    path: "/main",
+    name: "main",
     component: MainView,
     meta: {
-      title: 'Главная',
-      requiresAuth: false
-    }
+      title: "Главная",
+      requiresAuth: true,
+    },
   },
   {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
+    path: "/auth",
+    name: "auth",
+    component: AuthView,
+    meta: {
+      title: "Аутентиафикация",
+      requiresAuth: false,
+    },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
     component: NotFoundView,
     meta: {
-      title: 'Страница не найдена'
-    }
-  }
-]
+      title: "Страница не найдена",
+    },
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: routes,
-})
+});
 
 // Глобальные хуки навигации
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // Установка заголовка страницы
   if (to.meta.title) {
     document.title = to.meta.title as string;
   }
 
-  //Проверка доступа к комнате
+  // Проверка доступа
   if (to.meta.requiresAuth) {
-    const authStore = useUserStore()
+    const authStore = useAuthStore();
+
+    // Если пользователь ещё не авторизован — пробуем загрузить сессию
+    if (!authStore.isAuth) {
+      await authStore.loadSession();
+    }
 
     if (!authStore.isAuth) {
-      // Если не в комнате, перенаправляем на домашнюю
-     next({name: '/'})
-      return
+      next({ name: "auth" });
+      return;
     }
   }
-  
-  next()
-})
 
-export default router
+  next();
+});
+
+export default router;

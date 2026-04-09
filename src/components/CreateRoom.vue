@@ -1,50 +1,73 @@
 <template>
     <FormContainer>
-      <Input
-        label="Ник"
-        id="nickname"
-        name="nickname"
-        placeholder="Введи свой ник"
-        v-model="nicknameModel"
-      />
-      <Input
-        label="Название комнаты"
-        id="room"
-        name="room"
-        placeholder="Введи название комнаты"
-        v-model="roomModel"
-      />
-       <Input
-        label="Пароль от комнаты"
-        id="roomPassword"
-        name="roomPassword"
-        placeholder="Введи пароль от комнаты"
-        v-model="roomPasswordModel"
-      />
-      <router-link to="/main">
-        <Button v-on:click="authStore.login(nicknameModel, roomModel)"
-          >Соединиться с комнатой</Button
-        >
-      </router-link>
+        <Input
+            label="Название комнаты"
+            id="roomName"
+            name="roomName"
+            placeholder="Придумай название"
+            v-model="roomNameModel"
+        />
+        <Input
+            label="Пароль"
+            id="roomPassword"
+            name="roomPassword"
+            type="password"
+            placeholder="Придумай пароль"
+            v-model="roomPasswordModel"
+            :error="!!error"
+            :errorMessage="error"
+        />
+        <Button :disabled="loading" @click="handleCreate">
+            {{ loading ? "Создание..." : "Создать комнату" }}
+        </Button>
     </FormContainer>
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
-import Button from "@/components/Button.vue";
-import Input from "@/components/Input.vue";
 import { ref } from "vue";
-
-import { useUserStore } from "@/entities/user/user.store";
+import { useRouter } from "vue-router";
+import { useRoomStore } from "@/entities/room/room.store";
+import { useRoomRepository } from "@/entities/room/room.repository";
 import FormContainer from "./FormContainer.vue";
+import Button from "./Button.vue";
+import Input from "./Input.vue";
 
-const authStore = useUserStore();
+import { useAuthStore } from "@/entities/auth/auth.store";
 
-const nicknameModel = ref("");
-const roomModel = ref("");
-const roomPasswordModel = ref("")
+const roomStore = useRoomStore();
+const roomRepo = useRoomRepository();
+const authStore = useAuthStore();
+const router = useRouter();
+
+const roomNameModel = ref("");
+const roomPasswordModel = ref("");
+const loading = ref(false);
+const error = ref("");
+
+async function handleCreate() {
+    if (!roomNameModel.value || !roomPasswordModel.value) {
+        error.value = "Заполни все поля";
+        return;
+    }
+
+    loading.value = true;
+    error.value = "";
+
+    const result = await roomRepo.createRoom(
+        roomNameModel.value,
+        roomPasswordModel.value,
+        authStore.currentUser?.id || "",
+    );
+
+    loading.value = false;
+
+    if (result.success && result.room) {
+        roomStore.setRoom(result.room.title, result.room.password);
+        router.push("/main");
+    } else {
+        error.value = result.error || "Неизвестная ошибка";
+    }
+}
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

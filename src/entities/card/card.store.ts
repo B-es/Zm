@@ -1,47 +1,46 @@
-// src/entities/card/card.store.ts
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Card } from './card.types'
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import type { Card } from "./card.types";
 
-export const useCardStore = defineStore('card', () => {
+export const useCardStore = defineStore("card", () => {
   // ===== state =====
-  const cards = ref<Card[]>([])
+  const cards = ref<Card[]>([]);
 
   // ===== getters =====
-  const getCardById = (id: string) => cards.value.find(c => c.id === id)
+  const getCardById = (id: string) => cards.value.find((c) => c.id === id);
 
   // ===== actions =====
   const setCards = (newCards: Card[]) => {
-    cards.value = [...newCards]
-  }
+    cards.value = [...newCards];
+  };
 
   const addOrUpdateCard = (card: Card) => {
-    const idx = cards.value.findIndex(c => c.id === card.id)
+    const idx = cards.value.findIndex((c) => c.id === card.id);
     if (idx !== -1) {
       // update
-      cards.value[idx] = card
+      cards.value[idx] = card;
     } else {
       // add
-      cards.value.push(card)
+      cards.value.push(card);
     }
-  }
+  };
 
   const removeCard = (cardId: string) => {
-    cards.value = cards.value.filter(c => c.id !== cardId)
-  }
+    cards.value = cards.value.filter((c) => c.id !== cardId);
+  };
 
   // ===== realtime event handler =====
   const applyRealtime = (event: { type: string; payload: any }) => {
     switch (event.type) {
-      case 'CARD_UPDATE':
-        addOrUpdateCard(event.payload)
-        break
+      case "CARD_UPDATE":
+        addOrUpdateCard(event.payload);
+        break;
 
-      case 'CARD_DELETE':
-        removeCard(event.payload.id)
-        break
+      case "CARD_DELETE":
+        removeCard(event.payload.id);
+        break;
     }
-  }
+  };
 
   return {
     // state
@@ -54,6 +53,6 @@ export const useCardStore = defineStore('card', () => {
     setCards,
     addOrUpdateCard,
     removeCard,
-    applyRealtime
-  }
-})
+    applyRealtime,
+  };
+});
