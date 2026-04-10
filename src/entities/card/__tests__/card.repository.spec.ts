@@ -28,6 +28,7 @@ function createMockCard(overrides: Partial<Card> = {}): Card {
     section: "watch",
     title: "Test Card",
     description: "Test description",
+    marked: false,
     createdBy: "user-1",
     createdAt: "2024-01-01T00:00:00.000Z",
     updatedAt: "2024-01-01T00:00:00.000Z",

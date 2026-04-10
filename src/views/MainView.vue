@@ -28,6 +28,33 @@
 
         <!-- Курсоры других пользователей -->
         <PeerCursors />
+
+        <!-- Индикатор переподключения -->
+        <div
+            v-if="connectionStore.isReconnecting"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        >
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div
+                    class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-default mx-auto mb-4"
+                ></div>
+                <p class="text-lg font-semibold">
+                    Переподключение к комнате...
+                </p>
+            </div>
+        </div>
+
+        <!-- Индикатор потери соединения -->
+        <div
+            v-if="
+                connectionStore.connectionStatus === 'disconnected' &&
+                roomStore.roomId &&
+                !connectionStore.isReconnecting
+            "
+            class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+        >
+            <p>⚠️ Нет соединения</p>
+        </div>
     </div>
 </template>
 
@@ -45,11 +72,13 @@ import { useCardStore } from "@/entities/card/card.store";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useAuthStore } from "@/entities/auth/auth.store";
 import { useCursorStore } from "@/entities/cursor/cursor.store";
+import { useConnectionStore } from "@/entities/connection/connection.store";
 
 const authStore = useAuthStore();
 const roomStore = useRoomStore();
 const cardStore = useCardStore();
 const cursorStore = useCursorStore();
+const connectionStore = useConnectionStore();
 const router = useRouter();
 
 const url = ref(
@@ -75,46 +104,96 @@ const handleMouseMove = (e: MouseEvent) => {
     );
 };
 
-onMounted(() => {
-    const user = authStore.currentUser;
-    if (!user) return;
+// ===== Online/Offline handlers =====
+function handleOnline() {
+    console.log("[MainView] Connection restored");
+    connectionStore.connectionStatus = "connected";
+    // Переподключаемся к комнате если нужно
+    if (roomStore.roomId && authStore.currentUser) {
+        cardStore.subscribeToRealtime(roomStore.roomId);
+        cursorStore.joinRoom(
+            roomStore.roomId,
+            authStore.currentUser.id,
+            authStore.currentUser.nickname,
+            authStore.currentUser.avatarUrl || "",
+        );
+    }
+}
 
-    if (!roomStore.roomId) {
-        // Комната не восстановилась — редирект на ConnectView
+function handleOffline() {
+    console.log("[MainView] Connection lost");
+    connectionStore.connectionStatus = "disconnected";
+}
+
+onMounted(async () => {
+    const user = authStore.currentUser;
+    if (!user) {
+        console.log("[MainView] User not authenticated, redirecting");
         router.replace("/");
         return;
     }
 
-    // Переподписываемся на realtime и загружаем карточки после перезагрузки
-    cardStore.subscribeToRealtime(roomStore.roomId);
-    cardStore.loadCards(roomStore.roomId).catch(() => {});
+    if (!roomStore.roomId) {
+        console.log("[MainView] No room in store, trying to reconnect...");
 
-    // Подключаемся к курсорам
-    cursorStore.joinRoom(
-        roomStore.roomId,
-        user.id,
-        user.nickname,
-        user.avatarUrl || "",
-    );
+        // Пробуем переподключиться к последней комнате
+        const success = await connectionStore.reconnectToRoom();
+
+        if (!success) {
+            console.log(
+                "[MainView] Failed to reconnect, redirecting to connect",
+            );
+            router.replace("/");
+            return;
+        }
+
+        console.log("[MainView] Successfully reconnected to room");
+    } else {
+        // Команда есть, сохраняем состояние для будущего переподключения
+        connectionStore.saveConnectionState();
+        connectionStore.markAsConnected();
+
+        // Переподписываемся на realtime и загружаем карточки
+        cardStore.subscribeToRealtime(roomStore.roomId);
+        cardStore.loadCards(roomStore.roomId).catch(() => {});
+
+        // Подключаемся к курсорам
+        cursorStore.joinRoom(
+            roomStore.roomId,
+            user.id,
+            user.nickname,
+            user.avatarUrl || "",
+        );
+
+        console.log("[MainView] Connected to room:", roomStore.roomId);
+    }
 
     window.addEventListener("mousemove", handleMouseMove);
+
+    // Слушатели для обработки потери/восстановления интернета
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 });
 
 onUnmounted(() => {
     window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
     cursorStore.leaveRoom();
     cardStore.unsubscribeFromRealtime();
 });
 
 function handleLeaveRoom() {
-    cursorStore.leaveRoom();
+    connectionStore.disconnectFromRoom();
     roomStore.clearRoom();
     router.push("/");
 }
 
 async function handleLogout() {
-    await authStore.signOut();
+    connectionStore.disconnectFromRoom();
+    roomStore.clearRoom();
     cursorStore.leaveRoom();
+    await authStore.signOut();
     router.push("/");
 }
 </script>

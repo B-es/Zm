@@ -48,7 +48,12 @@ export const useCardStore = defineStore("card", () => {
   const getCardDraft = (cardId: string) => editingDrafts.value[cardId] || null;
 
   // ===== editing draft broadcast =====
-  const broadcastEditingDraft = (cardId: string, title: string, description: string, isEditing: boolean) => {
+  const broadcastEditingDraft = (
+    cardId: string,
+    title: string,
+    description: string,
+    isEditing: boolean,
+  ) => {
     if (!editingChannel || !myUserId) return;
     editingChannel.send(
       {
@@ -85,7 +90,11 @@ export const useCardStore = defineStore("card", () => {
     );
   };
 
-  const joinEditingChannel = (roomId: string, userId: string, nickname: string) => {
+  const joinEditingChannel = (
+    roomId: string,
+    userId: string,
+    nickname: string,
+  ) => {
     myUserId = userId;
     myNickname = nickname;
 
@@ -105,7 +114,12 @@ export const useCardStore = defineStore("card", () => {
     });
 
     ch.on("broadcast", { event: "editing-lock" }, (payload) => {
-      const data = payload.payload as { cardId: string; userId: string; nickname: string; isLocked: boolean };
+      const data = payload.payload as {
+        cardId: string;
+        userId: string;
+        nickname: string;
+        isLocked: boolean;
+      };
       if (data.isLocked) {
         editingLocks.value[data.cardId] = data.userId;
       } else {
@@ -206,6 +220,7 @@ export const useCardStore = defineStore("card", () => {
       section,
       title,
       description,
+      marked: false,
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
