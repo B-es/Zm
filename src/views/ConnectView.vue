@@ -34,4 +34,22 @@
 import LogIn from "@/components/LogIn.vue";
 import CreateRoom from "@/components/CreateRoom.vue";
 import MyRooms from "@/components/MyRooms.vue";
+import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/entities/auth/auth.store";
+import { useRoomStore } from "@/entities/room/room.store";
+
+const authStore = useAuthStore();
+const roomStore = useRoomStore();
+const router = useRouter();
+
+onMounted(() => {
+    // Если пользователь авторизован и есть комната - редиректим на main
+    if (authStore.currentUser && roomStore.roomId) {
+        console.log(
+            "[ConnectView] User authenticated with room, redirecting to main",
+        );
+        router.replace({ name: "main" });
+    }
+});
 </script>

@@ -126,9 +126,18 @@ function handleOffline() {
 }
 
 onMounted(async () => {
+    // Ждём пока загрузится сессия если ещё не загружена
+    if (!authStore.currentUser) {
+        console.log("[MainView] User not loaded yet, loading session...");
+        // Пробуем загрузить сессию
+        await authStore.loadSession();
+    }
+
     const user = authStore.currentUser;
     if (!user) {
-        console.log("[MainView] User not authenticated, redirecting");
+        console.log(
+            "[MainView] User not authenticated after session load, redirecting",
+        );
         router.replace("/");
         return;
     }
