@@ -27,15 +27,6 @@
             }}</span>
         </button>
 
-        <!-- Кнопка удаления -->
-        <button
-            v-if="!isLockedByOther"
-            class="absolute -bottom-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-red-100 transition-colors shadow-sm"
-            @click.stop="emit('delete', cardId)"
-        >
-            <span class="text-xs">🗑️</span>
-        </button>
-
         <!-- Кнопка разворота (когда контент превышает лимит) -->
         <button
             v-if="isOverflowing && !isEditing && !isLockedByOther"
@@ -158,8 +149,21 @@
             <!-- Баннер с картинкой -->
             <div
                 v-if="bannerUrl || isEditingBanner || isEditing"
-                class="mt-3 pt-3 border-t border-gray-200"
+                class="relative"
+                style="
+                    margin: 16px calc(-1rem - 1px) calc(-1rem - 1px)
+                        calc(-1rem - 1px);
+                "
             >
+                <!-- Кнопка удаления (в правом нижнем углу баннера) -->
+                <button
+                    v-if="!isLockedByOther"
+                    class="absolute -bottom-2 -right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-red-100 transition-colors shadow-sm"
+                    @click.stop="emit('delete', cardId)"
+                >
+                    <span class="text-xs">🗑️</span>
+                </button>
+
                 <!-- Режим просмотра -->
                 <div
                     v-if="bannerUrl && !isEditingBanner"
@@ -168,7 +172,7 @@
                     <img
                         :src="bannerUrl"
                         alt="Banner"
-                        class="w-full h-32 object-cover rounded-lg"
+                        class="w-full h-40 object-cover rounded-b-lg"
                         @error="handleImageError"
                     />
                     <button
@@ -181,22 +185,26 @@
                 </div>
 
                 <!-- Кнопка добавления баннера (только в режиме редактирования) -->
-                <button
+                <div
+                    class="px-4 pb-4"
                     v-if="
                         !bannerUrl &&
                         !isEditingBanner &&
                         !isLockedByOther &&
                         isEditing
                     "
-                    @click.stop="isEditingBanner = true"
-                    class="w-full flex items-center justify-center gap-2 py-4 text-sm text-gray-400 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition"
                 >
-                    <span>🖼️</span>
-                    <span>Добавить баннер</span>
-                </button>
+                    <button
+                        @click.stop="isEditingBanner = true"
+                        class="w-full flex items-center justify-center gap-2 py-4 text-sm text-gray-400 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition"
+                    >
+                        <span>🖼️</span>
+                        <span>Добавить баннер</span>
+                    </button>
+                </div>
 
                 <!-- Режим редактирования баннера -->
-                <div v-if="isEditingBanner" class="flex gap-2">
+                <div v-if="isEditingBanner" class="px-4 pb-4 flex gap-2">
                     <input
                         v-model="bannerUrlModel"
                         type="text"
@@ -220,11 +228,14 @@
                 </div>
 
                 <!-- Превью картинки при редактировании -->
-                <div v-if="isEditingBanner && bannerUrlModel" class="mt-2">
+                <div
+                    v-if="isEditingBanner && bannerUrlModel"
+                    class="mt-2 px-4 pb-4"
+                >
                     <img
                         :src="bannerUrlModel"
                         alt="Preview"
-                        class="w-full h-20 object-cover rounded"
+                        class="w-full h-20 object-cover rounded-b-lg"
                         @error="handleImageError"
                     />
                 </div>
