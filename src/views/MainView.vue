@@ -2,7 +2,7 @@
     <div class="main-view cursor-none">
         <div class="flex items-center justify-between p-4 border rounded-lg">
             <!-- Контент слева -->
-            <div class="flex gap-3">
+            <div class="flex gap-3 flex-col">
                 <Button @click="handleLeaveRoom">Выйти из комнаты</Button>
                 <Button @click="handleLogout">Выйти из аккаунта</Button>
             </div>

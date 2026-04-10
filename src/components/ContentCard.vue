@@ -39,20 +39,19 @@
                 cursorPointer: canEdit && !isMarked,
                 'cursor-not-allowed': isLockedByOther || isMarked,
             }"
-            @click.self="handleCardClick"
-            @dblclick="cancelEditing"
+            @dblclick.self="handleCardDblClick"
         >
             <div class="flex flex-col">
                 <input
                     v-model="titleModel"
                     class="font-medium text-gray-900 mb-1 outline-none"
                     :class="{
-                        'cursor-auto': !canEdit || isMarked,
                         'bg-gray-50': isMarked,
                     }"
-                    :readonly="!canEdit || isMarked"
+                    :readonly="!isEditing || isLockedByOther || isMarked"
+                    :tabindex="isEditing ? 0 : -1"
                     ref="titleInput"
-                    @focus="handleTitleFocus"
+                    @dblclick.stop="handleTitleDblClick"
                     @keydown="handleTitleKeydown"
                 />
                 <!-- Live editing draft from other user -->
@@ -71,20 +70,31 @@
                     </p>
                 </div>
                 <hr class="p-1" />
+                <!-- Markdown preview в режиме просмотра -->
+                <div
+                    v-if="!isEditing && isViewMode"
+                    class="text-sm text-gray-600 markdown-body cursor-pointer"
+                    v-html="renderedDescription"
+                    @dblclick.stop="handleCardDblClick"
+                />
+                <!-- Textarea в режиме редактирования -->
                 <textarea
+                    v-else
                     v-model="descriptionModel"
                     class="text-sm text-gray-600 outline-none resize-none overflow-hidden"
                     :class="{
-                        'cursor-auto': !canEdit,
                         'bg-gray-50': cardStore.getCardById(cardId)?.marked,
                     }"
                     :readonly="
-                        !canEdit || cardStore.getCardById(cardId)?.marked
+                        !isEditing ||
+                        !canEdit ||
+                        cardStore.getCardById(cardId)?.marked
                     "
+                    :tabindex="isEditing ? 0 : -1"
                     ref="textArea"
                     @input="adjustTextArea"
+                    @dblclick.stop="handleTextareaDblClick"
                     @keydown="handleTextareaKeydown"
-                    @focus="handleTextareaFocus"
                 />
             </div>
 
@@ -93,11 +103,17 @@
                 class="mt-2 text-xs text-gray-400 opacity-0 transition-opacity"
                 :class="{ 'opacity-100': showHint || isEditing }"
             >
-                <template v-if="isEditing">✏️ Редактируется</template>
+                <template v-if="isEditing"
+                    >✏️ Редактируется (Enter - сохранить, Shift+Enter - новая
+                    строка)</template
+                >
                 <template v-else-if="isLockedByOther"
                     >🔒 Редактирует {{ lockEditorName }}</template
                 >
-                <template v-else>✏️ Кликните для редактирования</template>
+                <template v-else-if="isViewMode"
+                    >👁️ Двойной клик для редактирования</template
+                >
+                <template v-else>✏️ Редактирование...</template>
             </div>
 
             <!-- Информация об авторе -->
@@ -116,7 +132,15 @@
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
 import { useCardStore } from "@/entities/card/card.store";
-import { getUserNicknames, upsertCurrentUser } from "@/entities/user/user.repository";
+import { getUserNicknames } from "@/entities/user/user.repository";
+import MarkdownIt from "markdown-it";
+
+const md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: true,
+    breaks: true,
+});
 
 interface Props {
     cardId: string;
@@ -161,6 +185,7 @@ const isEditing = ref(false);
 const titleModel = ref(props.title);
 const descriptionModel = ref(props.description);
 const showHint = ref(false);
+const isViewMode = ref(true); // По умолчанию режим просмотра Markdown
 
 const textArea = ref();
 const titleInput = ref();
@@ -183,8 +208,22 @@ watch(
     () => props.description,
     (val) => {
         descriptionModel.value = val;
+        // При обновлении пропсов возвращаем режим просмотра
+        isViewMode.value = true;
     },
 );
+
+// Render Markdown to HTML
+const renderedDescription = computed(() => {
+    if (!props.description && !descriptionModel.value) return "";
+    const text = isEditing.value ? descriptionModel.value : props.description;
+    return md.render(text || "");
+});
+
+// Toggle between edit and view mode
+const toggleViewMode = () => {
+    isViewMode.value = !isViewMode.value;
+};
 
 const initTitle = props.title;
 const initDescription = props.description;
@@ -216,8 +255,11 @@ const userNicknames = ref<Map<string, string>>(new Map());
 
 // Load user nicknames for this card
 const loadUserNicknames = async () => {
-    const userIds = [props.createdBy, props.updatedBy, props.lockedBy || ""]
-        .filter((id) => id && id !== props.userId);
+    const userIds = [
+        props.createdBy,
+        props.updatedBy,
+        props.lockedBy || "",
+    ].filter((id) => id && id !== props.userId);
 
     if (userIds.length > 0) {
         const nicknames = await getUserNicknames(userIds);
@@ -258,6 +300,7 @@ const editingUserName = computed(() => {
 // Отменить редактирование
 const cancel = async () => {
     isEditing.value = false;
+    isViewMode.value = true; // После отмены - показываем Markdown
     titleModel.value = props.title;
     descriptionModel.value = props.description || "";
     emit("editing-draft", {
@@ -311,11 +354,50 @@ watch(isMarked, async (marked) => {
 
 const handleCardClick = async () => {
     if (isMarked.value) return;
+    // Если в режиме просмотра Markdown - входим в режим редактирования
+    if (isViewMode.value) {
+        isViewMode.value = false;
+    }
     await startEditing(true);
 };
 
+const handleCardDblClick = async (event: MouseEvent) => {
+    if (isMarked.value) return;
+    if (isLockedByOther.value || !props.canStartEdit) return;
+
+    // Определяем, куда именно кликнули по Y координате
+    const clickY = event.clientY;
+
+    // Получаем элементы input'ов
+    const titleEl = titleInput.value as HTMLInputElement | undefined;
+    const titleRect = titleEl?.getBoundingClientRect();
+    const titleMiddle = titleRect ? (titleRect.top + titleRect.bottom) / 2 : 50;
+
+    // Если кликнули выше середины title - фокус на title, иначе на textarea
+    const focusTitle = clickY < titleMiddle;
+
+    if (isViewMode.value) {
+        isViewMode.value = false;
+    }
+
+    await startEditing(false);
+    await nextTick();
+
+    if (focusTitle) {
+        titleInput.value?.focus();
+    } else {
+        textArea.value?.focus();
+    }
+};
+
 const startEditing = async (autoFocus = true) => {
-    if (isEditing.value || isLockedByOther.value || isMarked.value || !props.canStartEdit) return;
+    if (
+        isEditing.value ||
+        isLockedByOther.value ||
+        isMarked.value ||
+        !props.canStartEdit
+    )
+        return;
 
     // Сначала запрашиваем блокировку
     const result = cardStore.startEditing(props.cardId, props.userId || "");
@@ -373,6 +455,7 @@ const save = async () => {
 
         emit("stop-edit", props.cardId);
         isEditing.value = false;
+        isViewMode.value = true; // После сохранения - показываем Markdown
 
         // Blur inputs
         await nextTick();
@@ -392,13 +475,16 @@ const handleKeydown = async (e: KeyboardEvent) => {
     }
 };
 
-// Обработка фокуса на title input
-const handleTitleFocus = async () => {
-    if (isLockedByOther.value || isMarked.value) {
-        titleInput.value?.blur();
-        return;
+// Обработка двойного клика на title input
+const handleTitleDblClick = async () => {
+    if (isLockedByOther.value || isMarked.value) return;
+    // Начинаем редактирование и фокусируем на title
+    if (isViewMode.value) {
+        isViewMode.value = false;
     }
     await startEditing(false);
+    await nextTick();
+    titleInput.value?.focus();
 };
 
 // Обработка клавиш в title input
@@ -427,13 +513,16 @@ const handleTextareaKeydown = (e: KeyboardEvent) => {
     // Shift+Enter - новая строка (стандартное поведение textarea)
 };
 
-// Обработка фокуса на textarea
-const handleTextareaFocus = async () => {
-    if (isLockedByOther.value || isMarked.value) {
-        textArea.value?.blur();
-        return;
+// Обработка двойного клика на textarea
+const handleTextareaDblClick = async () => {
+    if (isLockedByOther.value || isMarked.value) return;
+    // Начинаем редактирование и фокусируем на textarea
+    if (isViewMode.value) {
+        isViewMode.value = false;
     }
     await startEditing(false);
+    await nextTick();
+    textArea.value?.focus();
 };
 
 // Слушаем глобальные горячие клавиши
@@ -455,3 +544,123 @@ onUnmounted(() => {
     }
 });
 </script>
+
+<style scoped>
+/* Markdown styles */
+.markdown-body {
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+}
+
+.markdown-body :deep(h1) {
+    font-size: 1.5em;
+}
+
+.markdown-body :deep(h2) {
+    font-size: 1.3em;
+}
+
+.markdown-body :deep(h3) {
+    font-size: 1.1em;
+}
+
+.markdown-body :deep(p) {
+    margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(code) {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 0.85em;
+    background-color: rgba(175, 184, 193, 0.2);
+    border-radius: 6px;
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        SF Mono,
+        Menlo,
+        Consolas,
+        Liberation Mono,
+        monospace;
+}
+
+.markdown-body :deep(pre) {
+    padding: 1em;
+    overflow: auto;
+    font-size: 0.85em;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 6px;
+}
+
+.markdown-body :deep(pre code) {
+    padding: 0;
+    margin: 0;
+    font-size: 100%;
+    word-break: normal;
+    white-space: pre;
+    background: transparent;
+    border: 0;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+    padding-left: 2em;
+    margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(li) {
+    margin-bottom: 0.25em;
+}
+
+.markdown-body :deep(a) {
+    color: #0969da;
+    text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+    text-decoration: underline;
+}
+
+.markdown-body :deep(blockquote) {
+    padding: 0 1em;
+    color: #656d76;
+    border-left: 0.25em solid #d0d7de;
+    margin: 0.5em 0;
+}
+
+.markdown-body :deep(hr) {
+    height: 0.25em;
+    padding: 0;
+    margin: 1em 0;
+    background-color: #d0d7de;
+    border: 0;
+}
+
+.markdown-body :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(table th),
+.markdown-body :deep(table td) {
+    padding: 6px 13px;
+    border: 1px solid #d0d7de;
+}
+
+.markdown-body :deep(table tr:nth-child(2n)) {
+    background-color: #f6f8fa;
+}
+</style>
