@@ -1,5 +1,6 @@
 <template>
     <div
+        ref="cardRef"
         class="border rounded-lg p-4 transition-all duration-200 relative"
         :class="{
             'border-red-600': isEditing,
@@ -562,14 +563,31 @@ const handleTextareaDblClick = async () => {
     textArea.value?.focus();
 };
 
+// Обработка клика вне карточки (сохранение при потере фокуса)
+const cardRef = ref<HTMLElement | null>(null);
+
+const handleClickOutside = (event: MouseEvent) => {
+    if (!isEditing.value) return;
+
+    const target = event.target as Node;
+    const cardElement = cardRef.value;
+
+    // Если клик был вне карточки - сохраняем
+    if (cardElement && !cardElement.contains(target)) {
+        save();
+    }
+};
+
 // Слушаем глобальные горячие клавиши
 onMounted(async () => {
     window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("click", handleClickOutside);
     await loadUserNicknames();
 });
 
 onUnmounted(() => {
     window.removeEventListener("keydown", handleKeydown);
+    window.removeEventListener("click", handleClickOutside);
     if (isEditing.value) {
         emit("editing-draft", {
             cardId: props.cardId,
