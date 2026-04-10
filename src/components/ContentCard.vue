@@ -36,6 +36,15 @@
             <span class="text-xs">🗑️</span>
         </button>
 
+        <!-- Кнопка разворота (когда контент превышает лимит) -->
+        <button
+            v-if="isOverflowing && !isEditing && !isLockedByOther"
+            @click.stop="isDialogOpen = true"
+            class="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-blue-100 transition-colors shadow-sm"
+        >
+            <span class="text-xs">🔍</span>
+        </button>
+
         <!-- Индикатор блокировки -->
         <div
             v-if="isLockedByOther"
@@ -51,10 +60,13 @@
             }"
             @dblclick.self="handleCardDblClick"
         >
-            <div class="flex flex-col">
+            <div
+                ref="cardContentRef"
+                class="flex flex-col max-h-[400px] overflow-hidden relative"
+            >
                 <input
                     v-model="titleModel"
-                    class="font-medium text-gray-900 mb-1 outline-none"
+                    class="font-medium text-gray-900 mb-1 outline-none flex-shrink-0"
                     :class="{
                         'bg-gray-50': isMarked,
                     }"
@@ -106,6 +118,11 @@
                     @dblclick.stop="handleTextareaDblClick"
                     @keydown="handleTextareaKeydown"
                 />
+                <!-- Градиент внизу когда контент обрезается -->
+                <div
+                    v-if="isOverflowing && !isEditing && !isMarked"
+                    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none"
+                ></div>
             </div>
 
             <!-- Индикатор редактирования при наведении -->
@@ -138,6 +155,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Диалоговое окно для просмотра полной карточки -->
+    <Teleport to="body">
+        <div
+            v-if="isDialogOpen"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            @click="isDialogOpen = false"
+        >
+            <div
+                class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6"
+                @click.stop
+            >
+                <!-- Заголовок -->
+                <div class="flex items-start justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 flex-1">
+                        {{ titleModel }}
+                    </h2>
+                    <button
+                        @click="isDialogOpen = false"
+                        class="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Описание с Markdown -->
+                <div
+                    class="text-gray-700 markdown-body"
+                    v-html="renderedDescription"
+                ></div>
+
+                <!-- Информация о карточке -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <div class="text-xs text-gray-400 flex gap-4">
+                        <span v-if="createdByName"
+                            >👤 Создано: {{ createdByName }}</span
+                        >
+                        <span
+                            v-if="
+                                updatedByName && updatedByName !== createdByName
+                            "
+                            >✏️ Изменено: {{ updatedByName }}</span
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -198,9 +263,19 @@ const titleModel = ref(props.title);
 const descriptionModel = ref(props.description);
 const showHint = ref(false);
 const isViewMode = ref(true); // По умолчанию режим просмотра Markdown
+const isOverflowing = ref(false); // Контент превышает 400px
+const isDialogOpen = ref(false); // Диалоговое окно открыто
 
 const textArea = ref();
 const titleInput = ref();
+const cardContentRef = ref<HTMLElement | null>(null);
+
+// Проверка переполнения контента
+const checkOverflow = () => {
+    if (cardContentRef.value) {
+        isOverflowing.value = cardContentRef.value.scrollHeight > 400;
+    }
+};
 
 const adjustTextArea = () => {
     if (textArea.value) {
@@ -233,6 +308,17 @@ watch(descriptionModel, () => {
         });
     }
 });
+
+// Проверяем переполнение при изменении props
+watch(
+    () => props.description,
+    () => {
+        nextTick(() => {
+            checkOverflow();
+        });
+    },
+    { immediate: true },
+);
 
 // Render Markdown to HTML
 const renderedDescription = computed(() => {
