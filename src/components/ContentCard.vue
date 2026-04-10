@@ -27,6 +27,15 @@
             }}</span>
         </button>
 
+        <!-- Кнопка удаления -->
+        <button
+            v-if="!isLockedByOther"
+            class="absolute -bottom-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-red-100 transition-colors shadow-sm"
+            @click.stop="emit('delete', cardId)"
+        >
+            <span class="text-xs">🗑️</span>
+        </button>
+
         <!-- Индикатор блокировки -->
         <div
             v-if="isLockedByOther"
@@ -169,6 +178,7 @@ interface Emits {
         },
     ): void;
     (e: "mark", cardId: string): void;
+    (e: "delete", cardId: string): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {

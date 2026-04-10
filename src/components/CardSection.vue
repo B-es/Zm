@@ -26,7 +26,10 @@
             </button>
             <h1 class="text-2xl font-bold">
                 {{ title }}
-                <span v-if="isArchive" class="text-sm font-normal text-gray-400 ml-2">
+                <span
+                    v-if="isArchive"
+                    class="text-sm font-normal text-gray-400 ml-2"
+                >
                     (Архив)
                 </span>
             </h1>
@@ -55,6 +58,7 @@
                 @stop-edit="onStopEdit(card.id)"
                 @editing-draft="(payload) => onEditingDraft(payload)"
                 @mark="onMarkCard(card.id)"
+                @delete="onDeleteCard(card.id)"
             />
         </div>
 
@@ -149,8 +153,18 @@ const onStopEdit = (cardId: string) => {
     cardStore.stopEditing(cardId);
 };
 
-const onEditingDraft = (payload: { cardId: string; title: string; description: string; isEditing: boolean }) => {
-    cardStore.broadcastEditingDraft(payload.cardId, payload.title, payload.description, payload.isEditing);
+const onEditingDraft = (payload: {
+    cardId: string;
+    title: string;
+    description: string;
+    isEditing: boolean;
+}) => {
+    cardStore.broadcastEditingDraft(
+        payload.cardId,
+        payload.title,
+        payload.description,
+        payload.isEditing,
+    );
 };
 
 const onMarkCard = async (cardId: string) => {
@@ -158,6 +172,15 @@ const onMarkCard = async (cardId: string) => {
         await cardStore.markCard(cardId);
     } catch (e: any) {
         showToast(`Ошибка маркировки: ${e.message}`);
+    }
+};
+
+const onDeleteCard = async (cardId: string) => {
+    if (!confirm("Удалить карточку?")) return;
+    try {
+        await cardStore.deleteCard(cardId);
+    } catch (e: any) {
+        showToast(`Ошибка удаления: ${e.message}`);
     }
 };
 
@@ -191,7 +214,11 @@ onMounted(async () => {
         // Join the editing broadcast channel
         const user = authStore.currentUser;
         if (user) {
-            cardStore.joinEditingChannel(roomStore.roomId, user.id, user.nickname);
+            cardStore.joinEditingChannel(
+                roomStore.roomId,
+                user.id,
+                user.nickname,
+            );
         }
     } catch (e: any) {
         showToast(`Ошибка загрузки: ${e.message}`);
