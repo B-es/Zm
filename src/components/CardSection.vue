@@ -6,12 +6,14 @@
         >
             <button
                 class="p-2 rounded-lg transition-all duration-200 relative group/btn"
+                @click="toggleArchive"
+                :class="{ 'bg-gray-200': isArchive }"
             >
                 <!-- Подсказка при наведении -->
                 <div
                     class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none"
                 >
-                    Открыть архив
+                    {{ isArchive ? "Закрыть архив" : "Открыть архив" }}
                 </div>
 
                 <img
@@ -22,7 +24,12 @@
                     class="transition-all duration-200 group-hover:sepia group-hover:brightness-200"
                 />
             </button>
-            <h1 class="text-2xl font-bold">{{ title }}</h1>
+            <h1 class="text-2xl font-bold">
+                {{ title }}
+                <span v-if="isArchive" class="text-sm font-normal text-gray-400 ml-2">
+                    (Архив)
+                </span>
+            </h1>
         </div>
 
         <!-- Индикатор загрузки -->
@@ -46,6 +53,8 @@
                 @request-edit="onRequestEdit"
                 @update="(data) => onUpdateCard(card.id, data)"
                 @stop-edit="onStopEdit(card.id)"
+                @editing-draft="(payload) => onEditingDraft(payload)"
+                @mark="onMarkCard(card.id)"
             />
         </div>
 
@@ -92,13 +101,18 @@ const authStore = useAuthStore();
 const roomStore = useRoomStore();
 
 const toastMessage = ref<string | null>(null);
+const isArchive = ref(false);
 let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const currentUserId = computed(() => authStore.currentUser?.id || "");
 
 const sectionCards = computed(() => {
-    return cardStore.getCardsBySection(props.section);
+    return cardStore.getCardsBySection(props.section, isArchive.value);
 });
+
+const toggleArchive = () => {
+    isArchive.value = !isArchive.value;
+};
 
 const showToast = (message: string) => {
     toastMessage.value = message;
@@ -135,6 +149,18 @@ const onStopEdit = (cardId: string) => {
     cardStore.stopEditing(cardId);
 };
 
+const onEditingDraft = (payload: { cardId: string; title: string; description: string; isEditing: boolean }) => {
+    cardStore.broadcastEditingDraft(payload.cardId, payload.title, payload.description, payload.isEditing);
+};
+
+const onMarkCard = async (cardId: string) => {
+    try {
+        await cardStore.markCard(cardId);
+    } catch (e: any) {
+        showToast(`Ошибка маркировки: ${e.message}`);
+    }
+};
+
 const onAddCard = async () => {
     if (!roomStore.roomId) {
         showToast("Ошибка: комната не выбрана");
@@ -161,6 +187,12 @@ onMounted(async () => {
     try {
         await cardStore.loadCards(roomStore.roomId);
         cardStore.subscribeToRealtime(roomStore.roomId);
+
+        // Join the editing broadcast channel
+        const user = authStore.currentUser;
+        if (user) {
+            cardStore.joinEditingChannel(roomStore.roomId, user.id, user.nickname);
+        }
     } catch (e: any) {
         showToast(`Ошибка загрузки: ${e.message}`);
     }
@@ -168,5 +200,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
     cardStore.unsubscribeFromRealtime();
+    cardStore.leaveEditingChannel();
 });
 </script>

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { User } from "../user/user.types";
 import { supabase } from "@/supabase";
 import type { Session } from "@supabase/supabase-js";
+import { upsertUser } from "@/entities/user/user.repository";
 
 interface AuthState {
   user: User | null;
@@ -48,7 +49,7 @@ export const useAuthStore = defineStore("auth", {
         password,
         options: {
           data: {
-            nickname,
+            display_name: nickname,
           },
         },
       });
@@ -60,7 +61,10 @@ export const useAuthStore = defineStore("auth", {
         return { success: false, error: error.message };
       }
 
-      if (data.user) {
+      if (data.session) {
+        this.user = mapSessionToUser(data.session);
+      } else if (data.user) {
+        // Email не подтверждён — сессии нет, но пользователь создан
         this.user = {
           id: data.user.id,
           nickname: data.user.user_metadata?.nickname || email,
@@ -87,10 +91,13 @@ export const useAuthStore = defineStore("auth", {
         return { success: false, error: error.message };
       }
 
-      if (data.user) {
+      if (data.session) {
+        this.user = mapSessionToUser(data.session);
+      } else if (data.user) {
+        // Fallback если сессия не пришла
         this.user = {
           id: data.user.id,
-          nickname: data.user.user_metadata?.nickname || email,
+          nickname: data.user.user_metadata?.nickname || "",
           avatarUrl: data.user.user_metadata?.avatar_url,
         };
       }
@@ -105,7 +112,7 @@ export const useAuthStore = defineStore("auth", {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth`,
         },
       });
 
@@ -134,13 +141,66 @@ export const useAuthStore = defineStore("auth", {
     },
 
     async loadSession() {
+      // Проверяем, есть ли в URL код авторизации (после OAuth редиректа)
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+
+      console.log("[Auth Store] loadSession called, code =", code);
+
+      // Если есть код авторизации, обмениваем его на сессию
+      if (code) {
+        console.log(
+          "[Auth Store] OAuth callback detected, exchanging code for session...",
+        );
+        try {
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error("[Auth Store] exchangeCodeForSession error:", error);
+            this.error = error.message;
+            this.user = null;
+            return;
+          }
+          if (data.session) {
+            console.log(
+              "[Auth Store] Session exchanged successfully:",
+              data.session.user.email,
+            );
+            this.user = mapSessionToUser(data.session);
+            upsertUser(
+              this.user.id,
+              this.user.nickname,
+              this.user.avatarUrl || "",
+            );
+            console.log("[Auth Store] User set, isAuth =", this.isAuth);
+            return;
+          }
+        } catch (err) {
+          // Если exchangeCodeForSession не доступен или ошибка, пробуем getSession
+          console.error(
+            "[Auth Store] exchangeCodeForSession failed, falling back to getSession:",
+            err,
+          );
+        }
+      }
+
       const {
         data: { session },
+        error,
       } = await supabase.auth.getSession();
 
+      if (error) {
+        console.error("[Auth Store] getSession error:", error);
+      }
+
       if (session?.user) {
+        console.log("[Auth Store] Session loaded:", session.user.email);
         this.user = mapSessionToUser(session);
+        // Upsert profile on session load (fire and forget)
+        upsertUser(this.user.id, this.user.nickname, this.user.avatarUrl || "");
+        console.log("[Auth Store] User set, isAuth =", this.isAuth);
       } else {
+        console.log("[Auth Store] No session found");
         this.user = null;
       }
     },
@@ -149,10 +209,26 @@ export const useAuthStore = defineStore("auth", {
       supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           this.user = mapSessionToUser(session);
+          // Upsert profile on auth state change (fire and forget)
+          upsertUser(
+            this.user.id,
+            this.user.nickname,
+            this.user.avatarUrl || "",
+          );
         } else {
           this.user = null;
         }
       });
+    },
+    async updateAvatar(avatarUrl: string) {
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl },
+      });
+      if (updateError) throw updateError;
+
+      if (this.user) {
+        this.user.avatarUrl = avatarUrl;
+      }
     },
   },
 

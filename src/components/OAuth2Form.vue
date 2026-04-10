@@ -5,7 +5,7 @@
         <Button
             @click="handleGoogleLogin"
             :disabled="authStore.loading"
-            class="flex items-center gap-3 w-full justify-center bg-white border-2 border-gray-300 text-black hover:bg-gray-50 hover:border-gray-400 transition"
+            class="flex items-center gap-3 w-full justify-center bg-black border-2 border-black text-white hover:bg-gray-900 hover:border-gray-800 transition"
         >
             <!-- Google Icon -->
             <svg

@@ -7,6 +7,7 @@ export interface Card {
 
   title: string;
   description: string;
+  marked: boolean;
 
   createdBy: string;
   createdAt: string;

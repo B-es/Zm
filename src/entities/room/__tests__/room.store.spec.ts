@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useRoomStore } from "@/entities/room/room.store";
 import type { Room } from "@/entities/room/room.types";
@@ -17,6 +17,11 @@ function createMockRoom(overrides: Partial<Room> = {}): Room {
 describe("room.store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   describe("setRoom", () => {

@@ -64,6 +64,7 @@ function mapDbToCard(dbRow: Record<string, any>): Card {
     section: dbRow.section as CardSection,
     title: dbRow.title,
     description: dbRow.description || '',
+    marked: dbRow.marked || false,
     createdBy: dbRow.created_by,
     createdAt: dbRow.created_at,
     updatedAt: dbRow.updated_at,
@@ -78,9 +79,10 @@ function mapCardToDb(card: Card): Record<string, any> {
     section: card.section,
     title: card.title,
     description: card.description,
+    marked: card.marked,
     created_by: card.createdBy,
     created_at: card.createdAt,
-    updated_at: card.updatedAt,
     updated_by: card.updatedBy,
+    updated_at: card.updatedAt,
   };
 }

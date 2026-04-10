@@ -195,6 +195,73 @@ export function useRoomRepository() {
     }
   }
 
+  /**
+   * Отслеживать посещение комнаты (записать в историю)
+   */
+  async function trackRoomVisit(userId: string, roomId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from("room_visits")
+        .upsert(
+          {
+            user_id: userId,
+            room_id: roomId,
+            visited_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,room_id" }
+        );
+
+      if (error) throw error;
+
+      return true;
+    } catch (error) {
+      console.error("Error tracking room visit:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Получить историю посещений пользователя (комнаты, которые он посещал)
+   */
+  async function getVisitedRooms(userId: string): Promise<Room[]> {
+    try {
+      const { data, error } = await supabase
+        .from("room_visits")
+        .select(
+          `
+          rooms (
+            id,
+            title,
+            password,
+            created_by,
+            created_at
+          )
+          `
+        )
+        .eq("user_id", userId)
+        .order("visited_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (!data) return [];
+
+      // Extract rooms from the join result and deduplicate
+      const roomMap = new Map<string, Room>();
+      for (const visit of data) {
+        const roomRaw = (visit as any).rooms;
+        if (roomRaw && !roomMap.has(roomRaw.id)) {
+          roomMap.set(roomRaw.id, mapRawRoom(roomRaw));
+        }
+      }
+
+      return Array.from(roomMap.values());
+    } catch (error) {
+      console.error("Error fetching visited rooms:", error);
+      return [];
+    }
+  }
+
   return {
     isRoomExists,
     getRoom,
@@ -203,5 +270,7 @@ export function useRoomRepository() {
     getAllRooms,
     getRoomsByUser,
     deleteRoom,
+    trackRoomVisit,
+    getVisitedRooms,
   };
 }

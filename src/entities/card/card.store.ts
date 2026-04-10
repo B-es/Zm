@@ -2,24 +2,41 @@ import { defineStore } from "pinia";
 import { ref, type Ref } from "vue";
 import type { Card, CardSection } from "./card.types";
 import * as repository from "./card.repository";
+import { supabase } from "@/supabase";
 
 export interface EditingLock {
   cardId: string;
   userId: string;
 }
 
+export interface EditingDraft {
+  cardId: string;
+  userId: string;
+  nickname: string;
+  title: string;
+  description: string;
+  isEditing: boolean;
+  lastUpdate: number;
+}
+
 export const useCardStore = defineStore("card", () => {
   // ===== state =====
   const cards = ref<Card[]>([]);
   const editingLocks = ref<Record<string, string>>({}); // cardId -> userId
+  const editingDrafts = ref<Record<string, EditingDraft>>({}); // cardId -> EditingDraft
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+
+  // ===== realtime broadcast for editing =====
+  let editingChannel: ReturnType<typeof supabase.channel> | null = null;
+  let myUserId = "";
+  let myNickname = "";
 
   // ===== getters =====
   const getCardById = (id: string) => cards.value.find((c) => c.id === id);
 
-  const getCardsBySection = (section: CardSection) =>
-    cards.value.filter((c) => c.section === section);
+  const getCardsBySection = (section: CardSection, marked = false) =>
+    cards.value.filter((c) => c.section === section && c.marked === marked);
 
   const isCardEditingLocked = (cardId: string, userId: string) => {
     const lock = editingLocks.value[cardId];
@@ -27,6 +44,93 @@ export const useCardStore = defineStore("card", () => {
   };
 
   const getCardEditor = (cardId: string) => editingLocks.value[cardId] || null;
+
+  const getCardDraft = (cardId: string) => editingDrafts.value[cardId] || null;
+
+  // ===== editing draft broadcast =====
+  const broadcastEditingDraft = (cardId: string, title: string, description: string, isEditing: boolean) => {
+    if (!editingChannel || !myUserId) return;
+    editingChannel.send(
+      {
+        type: "broadcast",
+        event: "editing-draft",
+        payload: {
+          cardId,
+          userId: myUserId,
+          nickname: myNickname,
+          title,
+          description,
+          isEditing,
+          lastUpdate: Date.now(),
+        },
+      },
+      { httpSend: true },
+    );
+  };
+
+  const broadcastEditingLock = (cardId: string, isLocked: boolean) => {
+    if (!editingChannel || !myUserId) return;
+    editingChannel.send(
+      {
+        type: "broadcast",
+        event: "editing-lock",
+        payload: {
+          cardId,
+          userId: myUserId,
+          nickname: myNickname,
+          isLocked,
+        },
+      },
+      { httpSend: true },
+    );
+  };
+
+  const joinEditingChannel = (roomId: string, userId: string, nickname: string) => {
+    myUserId = userId;
+    myNickname = nickname;
+
+    const ch = supabase.channel(`card-editing:${roomId}`, {
+      config: {
+        broadcast: { self: false },
+      },
+    });
+
+    ch.on("broadcast", { event: "editing-draft" }, (payload) => {
+      const data = payload.payload as EditingDraft;
+      if (data.isEditing) {
+        editingDrafts.value[data.cardId] = data;
+      } else {
+        delete editingDrafts.value[data.cardId];
+      }
+    });
+
+    ch.on("broadcast", { event: "editing-lock" }, (payload) => {
+      const data = payload.payload as { cardId: string; userId: string; nickname: string; isLocked: boolean };
+      if (data.isLocked) {
+        editingLocks.value[data.cardId] = data.userId;
+      } else {
+        delete editingLocks.value[data.cardId];
+      }
+    });
+
+    editingChannel = ch;
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        console.log("Subscribed to card editing channel");
+      }
+    });
+  };
+
+  const leaveEditingChannel = () => {
+    myUserId = "";
+    myNickname = "";
+    editingDrafts.value = {};
+
+    if (editingChannel) {
+      supabase.removeChannel(editingChannel);
+      editingChannel = null;
+    }
+  };
 
   // ===== actions =====
   const setCards = (newCards: Card[]) => {
@@ -62,6 +166,29 @@ export const useCardStore = defineStore("card", () => {
 
   const stopEditing = (cardId: string) => {
     delete editingLocks.value[cardId];
+  };
+
+  const markCard = async (cardId: string): Promise<Card | null> => {
+    const existing = getCardById(cardId);
+    if (!existing) return null;
+
+    // Снимаем блокировку редактирования при маркировке/размаркировке
+    const wasLocked = editingLocks.value[cardId];
+    if (wasLocked) {
+      stopEditing(cardId);
+      broadcastEditingLock(cardId, false);
+    }
+
+    const updated: Card = {
+      ...existing,
+      marked: !existing.marked,
+      updatedAt: new Date().toISOString(),
+      updatedBy: existing.updatedBy,
+    };
+
+    const saved = await repository.saveCard(updated);
+    addOrUpdateCard(saved);
+    return saved;
   };
 
   const addCard = async (
@@ -166,6 +293,7 @@ export const useCardStore = defineStore("card", () => {
     // state
     cards,
     editingLocks,
+    editingDrafts,
     isLoading,
     error,
 
@@ -174,6 +302,7 @@ export const useCardStore = defineStore("card", () => {
     getCardsBySection,
     isCardEditingLocked,
     getCardEditor,
+    getCardDraft,
 
     // actions
     setCards,
@@ -183,10 +312,15 @@ export const useCardStore = defineStore("card", () => {
     addCard,
     updateCard,
     deleteCard,
+    markCard,
     addOrUpdateCard,
     removeCard,
     applyRealtime,
     subscribeToRealtime,
     unsubscribeFromRealtime,
+    broadcastEditingDraft,
+    broadcastEditingLock,
+    joinEditingChannel,
+    leaveEditingChannel,
   };
 });
