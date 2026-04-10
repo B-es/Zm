@@ -213,6 +213,15 @@ watch(
     },
 );
 
+// Подстраиваем высоту textarea при изменении модели
+watch(descriptionModel, () => {
+    if (isEditing.value) {
+        nextTick(() => {
+            adjustTextArea();
+        });
+    }
+});
+
 // Render Markdown to HTML
 const renderedDescription = computed(() => {
     if (!props.description && !descriptionModel.value) return "";
@@ -412,20 +421,27 @@ const startEditing = async (autoFocus = true) => {
     isEditing.value = true;
     showHint.value = false;
 
+    // Синхронизируем models с актуальными props при начале редактирования
+    titleModel.value = props.title;
+    descriptionModel.value = props.description || "";
+
     // Очищаем поля если это новая карточка
-    if (descriptionModel.value === initDescription && !props.createdBy) {
+    if (!props.createdBy) {
         descriptionModel.value = "";
-    }
-    if (titleModel.value === initTitle && !props.createdBy) {
         titleModel.value = "";
     }
 
-    // Автофокус только при клике на div (не при фокусе на инпутах)
+    // Автофокус и подстройка высоты textarea
     if (autoFocus) {
         await nextTick();
         setTimeout(() => {
             textArea.value?.focus();
+            adjustTextArea();
         }, 50);
+    } else {
+        // Даже без автофокуса нужно подстроить высоту
+        await nextTick();
+        adjustTextArea();
     }
 };
 
