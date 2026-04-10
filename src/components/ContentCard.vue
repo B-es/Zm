@@ -684,10 +684,16 @@ onUnmounted(() => {
 .markdown-body :deep(ol) {
     padding-left: 2em;
     margin-bottom: 0.75em;
+    list-style-type: disc !important;
+}
+
+.markdown-body :deep(ol) {
+    list-style-type: decimal !important;
 }
 
 .markdown-body :deep(li) {
     margin-bottom: 0.25em;
+    display: list-item !important;
 }
 
 .markdown-body :deep(a) {
