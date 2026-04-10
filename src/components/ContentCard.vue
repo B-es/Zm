@@ -505,6 +505,27 @@ const handleTitleKeydown = async (e: KeyboardEvent) => {
 const handleTextareaKeydown = (e: KeyboardEvent) => {
     if (!isEditing.value) return;
 
+    // Tab - вставить 4 пробела
+    if (e.key === "Tab") {
+        e.preventDefault();
+        const textarea = e.target as HTMLTextAreaElement;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const spaces = "    ";
+
+        // Вставляем 4 пробела в позицию курсора
+        descriptionModel.value =
+            descriptionModel.value.substring(0, start) +
+            spaces +
+            descriptionModel.value.substring(end);
+
+        // Ставим курсор после пробелов
+        nextTick(() => {
+            textarea.selectionStart = textarea.selectionEnd = start + 4;
+        });
+        return;
+    }
+
     // Enter без Shift - сохранить
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
