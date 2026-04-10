@@ -257,6 +257,23 @@ export const useCardStore = defineStore("card", () => {
     removeCard(cardId);
   };
 
+  const updateCardBanner = async (
+    cardId: string,
+    bannerUrl: string,
+  ): Promise<void> => {
+    await repository.updateCardBanner(cardId, bannerUrl);
+
+    // Обновляем локально
+    const card = getCardById(cardId);
+    if (card) {
+      addOrUpdateCard({
+        ...card,
+        bannerUrl,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  };
+
   const addOrUpdateCard = (card: Card) => {
     const idx = cards.value.findIndex((c) => c.id === card.id);
     if (idx !== -1) {
@@ -327,6 +344,7 @@ export const useCardStore = defineStore("card", () => {
     addCard,
     updateCard,
     deleteCard,
+    updateCardBanner,
     markCard,
     addOrUpdateCard,
     removeCard,

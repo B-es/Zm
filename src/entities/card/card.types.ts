@@ -8,6 +8,7 @@ export interface Card {
   title: string;
   description: string;
   marked: boolean;
+  bannerUrl?: string;
 
   createdBy: string;
   createdAt: string;

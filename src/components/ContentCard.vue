@@ -154,6 +154,81 @@
                     >· ✏️ Изменено: {{ updatedByName }}</span
                 >
             </div>
+
+            <!-- Баннер с картинкой -->
+            <div
+                v-if="bannerUrl || isEditingBanner || isEditing"
+                class="mt-3 pt-3 border-t border-gray-200"
+            >
+                <!-- Режим просмотра -->
+                <div
+                    v-if="bannerUrl && !isEditingBanner"
+                    class="relative group"
+                >
+                    <img
+                        :src="bannerUrl"
+                        alt="Banner"
+                        class="w-full h-32 object-cover rounded-lg"
+                        @error="handleImageError"
+                    />
+                    <button
+                        v-if="!isLockedByOther"
+                        @click.stop="isEditingBanner = true"
+                        class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-white bg-opacity-90 hover:bg-opacity-100 transition-opacity opacity-0 group-hover:opacity-100 shadow-sm"
+                    >
+                        <span class="text-xs">✏️</span>
+                    </button>
+                </div>
+
+                <!-- Кнопка добавления баннера (только в режиме редактирования) -->
+                <button
+                    v-if="
+                        !bannerUrl &&
+                        !isEditingBanner &&
+                        !isLockedByOther &&
+                        isEditing
+                    "
+                    @click.stop="isEditingBanner = true"
+                    class="w-full flex items-center justify-center gap-2 py-4 text-sm text-gray-400 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition"
+                >
+                    <span>🖼️</span>
+                    <span>Добавить баннер</span>
+                </button>
+
+                <!-- Режим редактирования баннера -->
+                <div v-if="isEditingBanner" class="flex gap-2">
+                    <input
+                        v-model="bannerUrlModel"
+                        type="text"
+                        placeholder="Вставьте ссылку на картинку..."
+                        class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                        @keydown.enter="saveBanner"
+                        @keydown.escape="cancelBannerEdit"
+                    />
+                    <button
+                        @click.stop="saveBanner"
+                        class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                    >
+                        ✓
+                    </button>
+                    <button
+                        @click.stop="cancelBannerEdit"
+                        class="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Превью картинки при редактировании -->
+                <div v-if="isEditingBanner && bannerUrlModel" class="mt-2">
+                    <img
+                        :src="bannerUrlModel"
+                        alt="Preview"
+                        class="w-full h-20 object-cover rounded"
+                        @error="handleImageError"
+                    />
+                </div>
+            </div>
         </div>
     </div>
 
@@ -168,6 +243,16 @@
                 class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6"
                 @click.stop
             >
+                <!-- Баннер в диалоге -->
+                <div v-if="bannerUrl" class="mb-4">
+                    <img
+                        :src="bannerUrl"
+                        alt="Banner"
+                        class="w-full h-48 object-cover rounded-lg"
+                        @error="handleImageError"
+                    />
+                </div>
+
                 <!-- Заголовок -->
                 <div class="flex items-start justify-between mb-4">
                     <h2 class="text-2xl font-bold text-gray-900 flex-1">
@@ -228,6 +313,7 @@ interface Props {
     userId?: string;
     lockedBy?: string | null;
     canStartEdit?: boolean;
+    bannerUrl?: string;
 }
 
 interface Emits {
@@ -245,6 +331,7 @@ interface Emits {
     ): void;
     (e: "mark", cardId: string): void;
     (e: "delete", cardId: string): void;
+    (e: "update-banner", payload: { cardId: string; bannerUrl: string }): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -254,6 +341,7 @@ const props = withDefaults(defineProps<Props>(), {
     userId: "",
     lockedBy: null,
     canStartEdit: true,
+    bannerUrl: "",
 });
 
 const emit = defineEmits<Emits>();
@@ -266,6 +354,8 @@ const showHint = ref(false);
 const isViewMode = ref(true); // По умолчанию режим просмотра Markdown
 const isOverflowing = ref(false); // Контент превышает 400px
 const isDialogOpen = ref(false); // Диалоговое окно открыто
+const bannerUrlModel = ref(props.bannerUrl || "");
+const isEditingBanner = ref(false);
 
 const textArea = ref();
 const titleInput = ref();
@@ -299,6 +389,12 @@ watch(
         descriptionModel.value = val;
         // При обновлении пропсов возвращаем режим просмотра
         isViewMode.value = true;
+    },
+);
+watch(
+    () => props.bannerUrl,
+    (val) => {
+        bannerUrlModel.value = val || "";
     },
 );
 
@@ -524,6 +620,7 @@ const startEditing = async (autoFocus = true) => {
     // Синхронизируем models с актуальными props при начале редактирования
     titleModel.value = props.title;
     descriptionModel.value = props.description || "";
+    bannerUrlModel.value = props.bannerUrl || "";
 
     // Очищаем поля если это новая карточка
     if (!props.createdBy) {
@@ -675,6 +772,29 @@ const handleClickOutside = (event: MouseEvent) => {
     if (cardElement && !cardElement.contains(target)) {
         save();
     }
+};
+
+// Обработка ошибки загрузки изображения
+const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    img.style.display = "none";
+};
+
+// Сохранить баннер
+const saveBanner = () => {
+    const newBannerUrl = bannerUrlModel.value.trim();
+    emit("update-banner", {
+        cardId: props.cardId,
+        bannerUrl: newBannerUrl,
+    });
+    // Обновляем локальную модель сразу для отображения
+    isEditingBanner.value = false;
+};
+
+// Отменить редактирование баннера
+const cancelBannerEdit = () => {
+    bannerUrlModel.value = props.bannerUrl || "";
+    isEditingBanner.value = false;
 };
 
 // Слушаем глобальные горячие клавиши

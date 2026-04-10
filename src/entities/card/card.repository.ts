@@ -1,14 +1,14 @@
-import { supabase } from '@/supabase';
-import type { Card, CardSection } from './card.types';
+import { supabase } from "@/supabase";
+import type { Card, CardSection } from "./card.types";
 
-const TABLE = 'cards';
+const TABLE = "cards";
 
 export async function fetchCardsByRoom(roomId: string): Promise<Card[]> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: true });
+    .select("*")
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
   return (data || []).map(mapDbToCard);
@@ -26,10 +26,19 @@ export async function saveCard(card: Card): Promise<Card> {
 }
 
 export async function deleteCardById(cardId: string): Promise<void> {
+  const { error } = await supabase.from(TABLE).delete().eq("id", cardId);
+
+  if (error) throw error;
+}
+
+export async function updateCardBanner(
+  cardId: string,
+  bannerUrl: string,
+): Promise<void> {
   const { error } = await supabase
     .from(TABLE)
-    .delete()
-    .eq('id', cardId);
+    .update({ banner_url: bannerUrl })
+    .eq("id", cardId);
 
   if (error) throw error;
 }
@@ -41,14 +50,19 @@ export function subscribeToRoomCards(
   return supabase
     .channel(`cards:${roomId}`)
     .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: TABLE, filter: `room_id=eq.${roomId}` },
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: TABLE,
+        filter: `room_id=eq.${roomId}`,
+      },
       (payload) => {
         const eventType = payload.eventType;
-        if (eventType === 'INSERT' || eventType === 'UPDATE') {
-          callback({ type: 'CARD_UPDATE', payload: mapDbToCard(payload.new) });
-        } else if (eventType === 'DELETE') {
-          callback({ type: 'CARD_DELETE', payload: { id: payload.old.id } });
+        if (eventType === "INSERT" || eventType === "UPDATE") {
+          callback({ type: "CARD_UPDATE", payload: mapDbToCard(payload.new) });
+        } else if (eventType === "DELETE") {
+          callback({ type: "CARD_DELETE", payload: { id: payload.old.id } });
         }
       },
     )
@@ -63,8 +77,9 @@ function mapDbToCard(dbRow: Record<string, any>): Card {
     roomId: dbRow.room_id,
     section: dbRow.section as CardSection,
     title: dbRow.title,
-    description: dbRow.description || '',
+    description: dbRow.description || "",
     marked: dbRow.marked || false,
+    bannerUrl: dbRow.banner_url || "",
     createdBy: dbRow.created_by,
     createdAt: dbRow.created_at,
     updatedAt: dbRow.updated_at,
@@ -80,6 +95,7 @@ function mapCardToDb(card: Card): Record<string, any> {
     title: card.title,
     description: card.description,
     marked: card.marked,
+    banner_url: card.bannerUrl || "",
     created_by: card.createdBy,
     created_at: card.createdAt,
     updated_by: card.updatedBy,

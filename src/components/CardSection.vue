@@ -48,6 +48,7 @@
                 :card-id="card.id"
                 :title="card.title"
                 :description="card.description"
+                :banner-url="card.bannerUrl || ''"
                 :created-by="card.createdBy"
                 :updated-by="card.updatedBy"
                 :user-id="currentUserId"
@@ -59,6 +60,7 @@
                 @editing-draft="(payload) => onEditingDraft(payload)"
                 @mark="onMarkCard(card.id)"
                 @delete="onDeleteCard(card.id)"
+                @update-banner="onUpdateBanner"
             />
         </div>
 
@@ -181,6 +183,17 @@ const onDeleteCard = async (cardId: string) => {
         await cardStore.deleteCard(cardId);
     } catch (e: any) {
         showToast(`Ошибка удаления: ${e.message}`);
+    }
+};
+
+const onUpdateBanner = async (payload: {
+    cardId: string;
+    bannerUrl: string;
+}) => {
+    try {
+        await cardStore.updateCardBanner(payload.cardId, payload.bannerUrl);
+    } catch (e: any) {
+        showToast(`Ошибка обновления баннера: ${e.message}`);
     }
 };
 
