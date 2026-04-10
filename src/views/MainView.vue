@@ -214,12 +214,8 @@ async function handleLogout() {
 
 .cursor-none,
 .cursor-none *,
-.cursor-none button,
-.cursor-none a,
-.cursor-none [role="button"],
-.cursor-none input,
-.cursor-none select,
-.cursor-none textarea {
+.cursor-none ::before,
+.cursor-none ::after {
     cursor: none !important;
 }
 </style>

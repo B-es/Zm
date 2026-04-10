@@ -62,7 +62,7 @@
         >
             <div
                 ref="cardContentRef"
-                class="flex flex-col max-h-[400px] overflow-hidden relative"
+                class="flex flex-col max-h-[300px] overflow-hidden relative"
             >
                 <input
                     v-model="titleModel"
@@ -103,7 +103,8 @@
                 <textarea
                     v-else
                     v-model="descriptionModel"
-                    class="text-sm text-gray-600 outline-none resize-none overflow-hidden"
+                    class="text-sm text-gray-600 outline-none resize-none overflow-y-auto"
+                    style="max-height: 250px"
                     :class="{
                         'bg-gray-50': cardStore.getCardById(cardId)?.marked,
                     }"
@@ -280,7 +281,8 @@ const checkOverflow = () => {
 const adjustTextArea = () => {
     if (textArea.value) {
         textArea.value.style.height = "auto";
-        textArea.value.style.height = `${textArea.value.scrollHeight}px`;
+        const newHeight = Math.min(textArea.value.scrollHeight, 250);
+        textArea.value.style.height = `${newHeight}px`;
     }
 };
 
