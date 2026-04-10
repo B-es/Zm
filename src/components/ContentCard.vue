@@ -111,6 +111,7 @@
                 <template v-else-if="isLockedByOther"
                     >🔒 Редактирует {{ lockEditorName }}</template
                 >
+                <template v-else-if="isMarked">📌 В архиве</template>
                 <template v-else-if="isViewMode"
                     >👁️ Двойной клик для редактирования</template
                 >
