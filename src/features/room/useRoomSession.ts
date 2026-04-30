@@ -19,7 +19,7 @@ export function useRoomSession() {
     const user = authStore.currentUser;
     if (!user || !roomStore.roomId) return false;
 
-    connectionStore.saveConnectionState(roomStore.roomId, user.id);
+    connectionStore.saveConnectionState();
     connectionStore.markAsConnected();
 
     cardStore.subscribeToRealtime(roomStore.roomId);
@@ -52,7 +52,7 @@ export function useRoomSession() {
       return false;
     }
 
-    connectionStore.setReconnecting();
+    connectionStore.reconnectToRoom();
 
     try {
       cardStore.subscribeToRealtime(roomStore.roomId);
@@ -68,7 +68,7 @@ export function useRoomSession() {
       connectionStore.markAsConnected();
       return true;
     } catch {
-      connectionStore.setDisconnected();
+      connectionStore.disconnectFromRoom();
       return false;
     }
   };
@@ -87,7 +87,7 @@ export function useRoomSession() {
   };
 
   const handleOffline = () => {
-    connectionStore.setDisconnected();
+    connectionStore.disconnectFromRoom();
   };
 
   const handleLeaveRoom = () => {

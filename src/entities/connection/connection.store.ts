@@ -149,5 +149,6 @@ export const useConnectionStore = defineStore("connection", () => {
     disconnectFromRoom,
     isOnline,
     markAsConnected,
+    getLastConnectionState,
   };
 });
