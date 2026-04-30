@@ -1,11 +1,12 @@
 import { useUserStore } from "@/entities/user/user.store";
 import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "./entities/auth/auth.store";
+import { useAuthStore } from "@/entities/auth/auth.store";
 
 const RoomView = () => import("@/views/RoomView.vue");
 const MainView = () => import("@/views/MainView.vue");
 const AuthView = () => import("@/views/AuthView.vue");
 const NotFoundView = () => import("@/views/NotFoundView.vue");
+const AuthCallbackView = () => import("@/views/AuthCallbackView.vue");
 
 const routes = [
   {
@@ -53,7 +54,7 @@ const router = createRouter({
 // Глобальные хуки навигации
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore();
-
+  //return;
   // Установка заголовка страницы
   if (to.meta.title) {
     document.title = to.meta.title as string;
@@ -62,6 +63,15 @@ router.beforeEach(async (to, from) => {
   // Если есть код авторизации в URL (OAuth callback) или пользователь не авторизован
   // Загружаем сессию и проверяем
   if (!authStore.isAuth) {
+    // Проверяем, есть ли в URL код авторизации (после OAuth редиректа)
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+
+    if (code) {
+      await authStore.loadSessionWithCode(code);
+    }
+
     await authStore.loadSession();
 
     // После загрузки сессии

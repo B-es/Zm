@@ -112,7 +112,7 @@ export const useAuthStore = defineStore("auth", {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -124,12 +124,13 @@ export const useAuthStore = defineStore("auth", {
       }
 
       // signInWithOAuth редиректит, но на случай если нет — загрузим сессию
-      await this.loadSession();
+      //await this.loadSession();
       return { success: true };
     },
 
     async signOut() {
       const { error } = await supabase.auth.signOut();
+
       this.user = null;
 
       if (error) {
@@ -140,11 +141,7 @@ export const useAuthStore = defineStore("auth", {
       return { success: true };
     },
 
-    async loadSession() {
-      // Проверяем, есть ли в URL код авторизации (после OAuth редиректа)
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-
+    async loadSessionWithCode(code: string) {
       // Если есть код авторизации, обмениваем его на сессию
       if (code) {
         console.log(
@@ -181,7 +178,9 @@ export const useAuthStore = defineStore("auth", {
           );
         }
       }
+    },
 
+    async loadSession() {
       const {
         data: { session },
         error,
@@ -215,6 +214,7 @@ export const useAuthStore = defineStore("auth", {
         }
       });
     },
+
     async updateAvatar(avatarUrl: string) {
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: avatarUrl },
