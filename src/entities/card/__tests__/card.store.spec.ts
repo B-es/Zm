@@ -3,6 +3,21 @@ import { createPinia, setActivePinia } from "pinia";
 import { useCardStore } from "@/entities/card/card.store";
 import type { Card, CardSection } from "@/entities/card/card.types";
 
+// Мокаем supabase ДО импорта store
+vi.mock("@/supabase", () => ({
+  supabase: {
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      send: vi.fn().mockResolvedValue({ error: null }),
+      subscribe: vi.fn((callback) => {
+        if (callback) callback("SUBSCRIBED");
+        return { unsubscribe: vi.fn() };
+      }),
+    })),
+    removeChannel: vi.fn(),
+  },
+}));
+
 // Мокаем repository
 vi.mock("@/entities/card/card.repository", () => ({
   fetchCardsByRoom: vi.fn(),
