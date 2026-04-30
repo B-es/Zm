@@ -1,22 +1,29 @@
 <template>
     <div class="main-view cursor-none">
-        <div class="flex items-center justify-between p-4 border rounded-lg">
-            <!-- Контент слева -->
-            <div class="flex gap-3 flex-col">
-                <Button @click="handleLeaveRoom">Выйти из комнаты</Button>
-                <Button @click="handleLogout">Выйти из аккаунта</Button>
-            </div>
+        <Placeholder :loading="isLeaving">
+            <div
+                class="flex items-center justify-between p-4 border rounded-lg"
+            >
+                <!-- Контент слева -->
+                <div class="flex gap-3 flex-col">
+                    <Button @click="handleLeaveRoom">Выйти из комнаты</Button>
+                    <Button @click="handleLogout">Выйти из аккаунта</Button>
+                </div>
 
-            <div class="flex items-center gap-8">
-                <ConnectedUsers :avatar-url="url" />
-                <!-- Аватар справа сверху -->
-                <AvatarBlock
-                    :avatar-url="authStore.currentUser?.avatarUrl || url"
-                    :title="authStore.currentUser?.nickname || ''"
-                    :description="String(roomStore.roomTitle)"
-                ></AvatarBlock>
+                <div class="flex items-center gap-8">
+                    <ConnectedUsers :avatar-url="defaultAvatarUrl" />
+                    <!-- Аватар справа сверху -->
+                    <AvatarBlock
+                        :avatar-url="
+                            authStore.currentUser?.avatarUrl || defaultAvatarUrl
+                        "
+                        :title="authStore.currentUser?.nickname || ''"
+                        :description="String(roomStore.roomTitle)"
+                    ></AvatarBlock>
+                </div>
             </div>
-        </div>
+        </Placeholder>
+
         <div class="flex justify-evenly">
             <CardSection title="Посмотрим" section="watch"></CardSection>
             <CardSection title="Сходим" section="go"></CardSection>
@@ -59,20 +66,24 @@
 </template>
 
 <script setup lang="ts">
-import AvatarBlock from "@/components/AvatarBlock.vue";
-import Button from "@/components/Button.vue";
-import CardSection from "@/components/CardSection.vue";
-import PeerCursors from "@/components/PeerCursors.vue";
-import MyCursor from "@/components/MyCursor.vue";
+import AvatarBlock from "@/components/MainLobby/AvatarBlock.vue";
+import Button from "@/shared/components/Button.vue";
+import CardSection from "@/components/MainLobby/CardSection.vue";
+import PeerCursors from "@/components/MainLobby/PeerCursors.vue";
+import MyCursor from "@/components/MainLobby/MyCursor.vue";
+import Placeholder from "@/shared/components/Placeholder.vue";
+
 import { onMounted, onUnmounted, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
-import ConnectedUsers from "@/components/ConnectedUsers.vue";
+import ConnectedUsers from "@/components/MainLobby/ConnectedUsers.vue";
 
 import { useCardStore } from "@/entities/card/card.store";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useAuthStore } from "@/entities/auth/auth.store";
 import { useCursorStore } from "@/entities/cursor/cursor.store";
 import { useConnectionStore } from "@/entities/connection/connection.store";
+import { useLeave } from "@/shared/composables/useLeave";
+import { defaultAvatarUrl } from "@/utils/defaultUrl";
 
 const authStore = useAuthStore();
 const roomStore = useRoomStore();
@@ -81,9 +92,7 @@ const cursorStore = useCursorStore();
 const connectionStore = useConnectionStore();
 const router = useRouter();
 
-const url = ref(
-    "https://sun9-55.userapi.com/s/v1/ig2/qnw-kgD0Mg7UB0yF4UC055_Snp4BaW9UqxyxED1QyovREDY-uTa_WSxa2NB0p4wnS4eX5iwgfV_lezNcnOg_h0xu.jpg?quality=95&as=32x47,48x71,72x107,108x160,160x237,240x355,360x533,480x710,540x799&from=bu&u=Lxg3jai_vtfNfDROM7ZUU23e4_nXaq3dVpBb8AubRpU&cs=540x0",
-);
+const { handleLeaveRoom, handleLogout, isLeaving } = useLeave();
 
 const cursorPosition = reactive({ x: -100, y: -100 });
 
@@ -106,7 +115,6 @@ const handleMouseMove = (e: MouseEvent) => {
 
 // ===== Online/Offline handlers =====
 function handleOnline() {
-    console.log("[MainView] Connection restored");
     connectionStore.connectionStatus = "connected";
     // Переподключаемся к комнате если нужно
     if (roomStore.roomId && authStore.currentUser) {
@@ -121,14 +129,12 @@ function handleOnline() {
 }
 
 function handleOffline() {
-    console.log("[MainView] Connection lost");
     connectionStore.connectionStatus = "disconnected";
 }
 
 onMounted(async () => {
     // Ждём пока загрузится сессия если ещё не загружена
     if (!authStore.currentUser) {
-        console.log("[MainView] User not loaded yet, loading session...");
         // Пробуем загрузить сессию
         await authStore.loadSession();
     }
@@ -143,8 +149,6 @@ onMounted(async () => {
     }
 
     if (!roomStore.roomId) {
-        console.log("[MainView] No room in store, trying to reconnect...");
-
         // Пробуем переподключиться к последней комнате
         const success = await connectionStore.reconnectToRoom();
 
@@ -155,8 +159,6 @@ onMounted(async () => {
             router.replace("/");
             return;
         }
-
-        console.log("[MainView] Successfully reconnected to room");
     } else {
         // Команда есть, сохраняем состояние для будущего переподключения
         connectionStore.saveConnectionState();
@@ -173,8 +175,6 @@ onMounted(async () => {
             user.nickname,
             user.avatarUrl || "",
         );
-
-        console.log("[MainView] Connected to room:", roomStore.roomId);
     }
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -191,20 +191,6 @@ onUnmounted(() => {
     cursorStore.leaveRoom();
     cardStore.unsubscribeFromRealtime();
 });
-
-function handleLeaveRoom() {
-    connectionStore.disconnectFromRoom();
-    roomStore.clearRoom();
-    router.push("/");
-}
-
-async function handleLogout() {
-    connectionStore.disconnectFromRoom();
-    roomStore.clearRoom();
-    cursorStore.leaveRoom();
-    await authStore.signOut();
-    router.push("/");
-}
 </script>
 
 <style scoped>

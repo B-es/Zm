@@ -1,6 +1,13 @@
 <template>
     <FormContainer>
         <Input
+            label="Ник"
+            id="nickname"
+            name="nickname"
+            placeholder="Введи свой ник"
+            v-model="nicknameModel"
+        />
+        <Input
             label="Email"
             id="email"
             name="email"
@@ -15,13 +22,13 @@
             id="password"
             name="password"
             type="password"
-            placeholder="Введи пароль"
+            placeholder="Введи пароль (мин. 6 символов)"
             v-model="passwordModel"
             :error="!!authStore.authError"
             :errorMessage="authStore.authError || ''"
         />
-        <Button :disabled="authStore.loading" @click="handleLogin">
-            {{ authStore.loading ? "Вход..." : "Войти" }}
+        <Button :disabled="authStore.loading" @click="handleRegister">
+            {{ authStore.loading ? "Регистрация..." : "Зарегистрироваться" }}
         </Button>
     </FormContainer>
 </template>
@@ -30,20 +37,27 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/entities/auth/auth.store";
-import FormContainer from "./FormContainer.vue";
-import Button from "./Button.vue";
-import Input from "./Input.vue";
+import FormContainer from "@/shared/components/FormContainer.vue";
+import Button from "@/shared/components/Button.vue";
+import Input from "@/shared/components/Input.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
 
+const nicknameModel = ref("");
 const emailModel = ref("");
 const passwordModel = ref("");
 
-async function handleLogin() {
-    const result = await authStore.signIn(
+async function handleRegister() {
+    if (passwordModel.value.length < 6) {
+        alert("Пароль должен содержать минимум 6 символов");
+        return;
+    }
+
+    const result = await authStore.signUp(
         emailModel.value,
         passwordModel.value,
+        nicknameModel.value,
     );
     if (result.success) {
         router.push("/");

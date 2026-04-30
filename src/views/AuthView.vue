@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import LoginForm from "@/components/LoginForm.vue";
-import RegisterForm from "@/components/RegisterForm.vue";
-import OAuth2Section from "@/components/OAuth2Section.vue";
+import LoginForm from "@/components/AuthLobby/LoginForm.vue";
+import RegisterForm from "@/components/AuthLobby/RegisterForm.vue";
+import OAuth2Section from "@/components/AuthLobby/OAuth2Section.vue";
 </script>

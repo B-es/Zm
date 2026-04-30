@@ -28,9 +28,6 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useRoomRepository } from "@/entities/room/room.repository";
-import FormContainer from "./FormContainer.vue";
-import Button from "./Button.vue";
-import Input from "./Input.vue";
 
 import { useAuthStore } from "@/entities/auth/auth.store";
 

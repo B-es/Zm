@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from "@/entities/auth/auth.store";
-import Button from "./Button.vue";
+import Button from "@/shared/components/Button.vue";
 
 const authStore = useAuthStore();
 

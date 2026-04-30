@@ -145,8 +145,6 @@ export const useAuthStore = defineStore("auth", {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
 
-      console.log("[Auth Store] loadSession called, code =", code);
-
       // Если есть код авторизации, обмениваем его на сессию
       if (code) {
         console.log(
@@ -172,7 +170,7 @@ export const useAuthStore = defineStore("auth", {
               this.user.nickname,
               this.user.avatarUrl || "",
             );
-            console.log("[Auth Store] User set, isAuth =", this.isAuth);
+
             return;
           }
         } catch (err) {
@@ -194,13 +192,10 @@ export const useAuthStore = defineStore("auth", {
       }
 
       if (session?.user) {
-        console.log("[Auth Store] Session loaded:", session.user.email);
         this.user = mapSessionToUser(session);
         // Upsert profile on session load (fire and forget)
         upsertUser(this.user.id, this.user.nickname, this.user.avatarUrl || "");
-        console.log("[Auth Store] User set, isAuth =", this.isAuth);
       } else {
-        console.log("[Auth Store] No session found");
         this.user = null;
       }
     },

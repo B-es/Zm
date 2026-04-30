@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import ContentCard from "@/components/ContentCard.vue";
+import ContentCard from "./ContentCard.vue";
 import archiveIcon from "/archive_icon.svg";
 import { useCardStore } from "@/entities/card/card.store";
 import { useAuthStore } from "@/entities/auth/auth.store";

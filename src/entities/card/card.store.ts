@@ -130,7 +130,6 @@ export const useCardStore = defineStore("card", () => {
     editingChannel = ch;
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") {
-        console.log("Subscribed to card editing channel");
       }
     });
   };

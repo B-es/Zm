@@ -74,26 +74,22 @@ export const useConnectionStore = defineStore("connection", () => {
     const lastState = getLastConnectionState();
 
     if (!lastState) {
-      console.log("[Connection] No saved connection state");
       return false;
     }
 
     // Проверяем, что комната всё ещё в localStorage
     if (!roomStore.roomId) {
-      console.log("[Connection] Room not in localStorage, clearing state");
       clearConnectionState();
       return false;
     }
 
     // Проверяем, что пользователь авторизован
     if (!authStore.currentUser) {
-      console.log("[Connection] User not authenticated");
       return false;
     }
 
     isReconnecting.value = true;
     connectionStatus.value = "reconnecting";
-    console.log("[Connection] Reconnecting to room:", roomStore.roomId);
 
     try {
       // Подписываемся на realtime и загружаем карточки
@@ -111,7 +107,6 @@ export const useConnectionStore = defineStore("connection", () => {
       connectionStatus.value = "connected";
       isReconnecting.value = false;
 
-      console.log("[Connection] Successfully reconnected to room");
       return true;
     } catch (error) {
       console.error("[Connection] Failed to reconnect:", error);
@@ -126,14 +121,12 @@ export const useConnectionStore = defineStore("connection", () => {
    */
   function markAsConnected() {
     connectionStatus.value = "connected";
-    console.log("[Connection] Marked as connected");
   }
 
   /**
    * Отключение от комнаты (при выходе)
    */
   function disconnectFromRoom() {
-    console.log("[Connection] Disconnecting from room");
     cursorStore.leaveRoom();
     cardStore.unsubscribeFromRealtime();
     clearConnectionState();

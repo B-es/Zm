@@ -10,11 +10,15 @@ import "./index.css";
 const app = createApp(App);
 
 import { Tabs, Tab } from "vue3-tabs-component";
-import Button from "./components/Button.vue";
-import Input from "./components/Input.vue";
+import Button from "@/shared/components/Button.vue";
+import Input from "@/shared/components/Input.vue";
+import FormContainer from "@/shared/components/FormContainer.vue";
 
 app.component("tabs", Tabs).component("tab", Tab);
-app.component("Button", Button).component("Input", Input);
+app
+  .component("Button", Button)
+  .component("Input", Input)
+  .component("FormContainer", FormContainer);
 
 const pinia = createPinia();
 app.use(pinia);

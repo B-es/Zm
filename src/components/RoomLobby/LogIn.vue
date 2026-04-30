@@ -29,9 +29,6 @@ import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useRoomRepository } from "@/entities/room/room.repository";
 import { useAuthStore } from "@/entities/auth/auth.store";
-import FormContainer from "./FormContainer.vue";
-import Button from "./Button.vue";
-import Input from "./Input.vue";
 
 const roomStore = useRoomStore();
 const roomRepo = useRoomRepository();
@@ -61,13 +58,13 @@ async function handleJoin() {
 
     if (result.success && result.room) {
         roomStore.setRoom(result.room);
-        
+
         // Track room visit
         const userId = authStore.currentUser?.id;
         if (userId) {
             await roomRepo.trackRoomVisit(userId, result.room.id);
         }
-        
+
         router.push("/main");
     } else {
         error.value = result.error || "Ошибка входа";
