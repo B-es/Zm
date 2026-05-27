@@ -9,19 +9,19 @@
             nav-item-link-class="block text-center py-4 px-6 transition-colors duration-200"
             nav-item-link-active-class="text-white font-semibold border-b-2 border-red-600"
             nav-item-link-inactive-class="text-gray-600"
-            panels-wrapper-class="p-6 min-h-[540px] flex flex-col h-full justify-end"
+            panels-wrapper-class="p-6 min-h-[440px] flex flex-col h-full justify-start"
         >
             <tab name="Войти">
                 <div class="flex-1">
                     <LoginForm />
                 </div>
-                <OAuth2Section />
+                <!-- <OAuth2Section /> -->
             </tab>
             <tab name="Регистрация">
                 <div class="flex-1">
                     <RegisterForm />
                 </div>
-                <OAuth2Section />
+                <!-- <OAuth2Section /> -->
             </tab>
         </tabs>
     </div>

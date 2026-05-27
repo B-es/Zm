@@ -7,7 +7,7 @@
             placeholder="Введи свой ник"
             v-model="nicknameModel"
         />
-        <Input
+        <!-- <Input
             label="Email"
             id="email"
             name="email"
@@ -16,7 +16,7 @@
             v-model="emailModel"
             :error="!!authStore.authError"
             :errorMessage="authStore.authError || ''"
-        />
+        /> -->
         <Input
             label="Пароль"
             id="password"
@@ -55,13 +55,9 @@ async function handleRegister() {
     }
 
     const result = await authStore.signUp(
-        emailModel.value,
-        passwordModel.value,
         nicknameModel.value,
+        passwordModel.value,
     );
-    if (result.success) {
-        router.push("/");
-    }
 }
 </script>
 

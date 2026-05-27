@@ -2,7 +2,9 @@
     <div class="flex flex-col gap-4">
         <!-- Owned Rooms Section -->
         <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <h3
+                class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2"
+            >
                 Мои комнаты
             </h3>
             <div v-if="loadingOwned" class="text-gray-500 text-center py-4">
@@ -22,7 +24,10 @@
                     class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition"
                 >
                     <p class="font-medium text-gray-800">{{ room.title }}</p>
-                    <p v-if="formatDate(room.createdAt)" class="text-xs text-gray-400">
+                    <p
+                        v-if="formatDate(room.createdAt)"
+                        class="text-xs text-gray-400"
+                    >
                         Создана: {{ formatDate(room.createdAt) }}
                     </p>
                 </button>
@@ -30,8 +35,13 @@
         </div>
 
         <!-- Visited Rooms Section -->
-        <div v-if="visitedRooms.length > 0" class="border-t border-gray-200 pt-4">
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <div
+            v-if="visitedRooms.length > 0"
+            class="border-t border-gray-200 pt-4"
+        >
+            <h3
+                class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2"
+            >
                 История посещений
             </h3>
             <div v-if="loadingVisited" class="text-gray-500 text-center py-4">
@@ -46,7 +56,12 @@
                 >
                     <p class="font-medium text-gray-800">{{ room.title }}</p>
                     <p class="text-xs text-gray-400">
-                        Владелец: {{ room.createdBy === userId ? "Вы" : "Другой пользователь" }}
+                        Владелец:
+                        {{
+                            room.createdBy === userId
+                                ? "Вы"
+                                : "Другой пользователь"
+                        }}
                     </p>
                 </button>
             </div>
@@ -61,12 +76,12 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useRoomRepository } from "@/entities/room/room.repository";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
 import type { Room } from "@/entities/room/room.types";
 
 const roomStore = useRoomStore();
 const roomRepo = useRoomRepository();
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const router = useRouter();
 
 const ownedRooms = ref<Room[]>([]);
@@ -75,7 +90,8 @@ const loadingOwned = ref(true);
 const loadingVisited = ref(true);
 const error = ref("");
 
-const userId = computed(() => authStore.currentUser?.id || "");
+const userId = computed(() => userStore.current?.id || "");
+console.log(userStore.current);
 
 onMounted(async () => {
     if (!userId.value) {

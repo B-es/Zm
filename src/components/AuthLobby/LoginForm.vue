@@ -45,9 +45,6 @@ async function handleLogin() {
         emailModel.value,
         passwordModel.value,
     );
-    if (result.success) {
-        router.push("/");
-    }
 }
 </script>
 

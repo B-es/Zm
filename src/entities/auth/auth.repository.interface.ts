@@ -1,8 +1,6 @@
 export interface IAuthRepository {
-  signUp(nickname: string, password: string): Promise<Object>;
-  signIn(nickname: string, password: string): Promise<Object>;
-  signOut(): Promise<Object>;
+  signUp(nickname: string, password: string): Promise<void>;
+  signIn(nickname: string, password: string): Promise<void>;
+  signOut(): Promise<void>;
   loadSession(): Promise<void>;
-  initAuthListener(): void;
-  updateAvatar(avatarUrl: string): Promise<void>;
 }

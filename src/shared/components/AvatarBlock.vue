@@ -3,7 +3,10 @@
         class="flex items-center gap-3 p-4 border rounded-lg transition-colors cursor-pointer hover:bg-gray-50"
         @click="isModalOpen = true"
     >
-        <Avatar :avatar-url="avatarUrl" :style="{ borderColor: cursorColor }"></Avatar>
+        <Avatar
+            :avatar-url="avatarUrl"
+            :style="{ borderColor: cursorColor }"
+        ></Avatar>
         <div>
             <h3 class="font-medium text-gray-900">
                 {{ title }}
@@ -61,7 +64,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import Avatar from "./Avatar.vue";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
 import { getPeerColor } from "@/utils/peerColor";
 
 interface Props {
@@ -72,9 +75,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const cursorColor = computed(() => {
-    const userId = authStore.currentUser?.id || "";
+    const userId = userStore.current?.id || "";
     return getPeerColor(userId);
 });
 const isModalOpen = ref(false);
@@ -99,7 +102,7 @@ async function saveAvatar() {
     error.value = "";
 
     try {
-        await authStore.updateAvatar(avatarUrlInput.value.trim());
+        await userStore.updateAvatar(avatarUrlInput.value.trim());
         isModalOpen.value = false;
     } catch (e: any) {
         error.value = e.message || "Ошибка сохранения";

@@ -1,22 +1,20 @@
 import type { IAuthRepository } from "./auth.repository.interface";
+import { useUserStore } from "../user/user.store";
 
 export class NoneAuthRepository implements IAuthRepository {
-  signUp(nickname: string, password: string): Promise<Object> {
-    throw new Error("Method not implemented.");
+  async signUp(nickname: string, password: string): Promise<void> {
+    const userStore = useUserStore();
+    await userStore.setCurrent(nickname, password);
   }
-  signIn(nickname: string, password: string): Promise<Object> {
+  async signIn(nickname: string, password: string): Promise<void> {
     throw new Error("Method not implemented.");
+    const userStore = useUserStore();
+    await userStore.setCurrent(nickname, password);
   }
   signOut(): Promise<Object> {
-    throw new Error("Method not implemented.");
+    //throw new Error("Method not implemented.");
   }
   loadSession(): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
-  initAuthListener(): void {
     // throw new Error("Method not implemented.");
-  }
-  updateAvatar(avatarUrl: string): Promise<void> {
-    throw new Error("Method not implemented.");
   }
 }

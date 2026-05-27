@@ -58,7 +58,6 @@ router.beforeEach(async (to, from) => {
   if (to.meta.title) {
     document.title = to.meta.title as string;
   }
-
   // Проверка доступа к защищённым маршрутам
   if (to.meta.requiresAuth) {
     if (!authStore.isAuth) {
