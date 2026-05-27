@@ -1,4 +1,3 @@
-import { supabase } from "@/supabase";
 import type { Card, CardSection } from "./card.types";
 
 const TABLE = "cards";

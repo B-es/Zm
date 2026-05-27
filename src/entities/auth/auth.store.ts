@@ -1,236 +1,65 @@
 import { defineStore } from "pinia";
 import type { User } from "../user/user.types";
-import { supabase } from "@/supabase";
-import type { Session } from "@supabase/supabase-js";
-import { upsertUser } from "@/entities/user/user.repository";
+import { computed, ref } from "vue";
+import { di } from "../../di";
+import { useErrorHandler } from "@/shared/composables/useErrorHandler";
 
-interface AuthState {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-}
+const authRepository = di.authRepository;
 
-function mapSessionToUser(session: Session): User {
-  const meta = session.user.user_metadata || {};
-  // Поставщики OAuth2 отдают разные поля:
-  // Google: full_name / name
-  // GitHub: name
-  // Discord: global_name / username
-  const nickname =
-    meta.nickname ||
-    meta.global_name ||
-    meta.username ||
-    meta.full_name ||
-    meta.name ||
-    session.user.email ||
-    "";
+export const useAuthStore = defineStore("auth", () => {
+  const { withError, showToast } = useErrorHandler();
+  const user = ref<User | null>(null);
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+
+  async function signUp(nickname: string, password: string) {
+    error.value = null;
+    loading.value = true;
+    await withError(() => authRepository.signUp(nickname, password), "signUp");
+    loading.value = false;
+  }
+
+  async function signIn(nickname: string, password: string) {
+    error.value = null;
+    loading.value = true;
+    await withError(() => authRepository.signIn(nickname, password), "signIn");
+    loading.value = false;
+  }
+
+  async function signOut() {
+    error.value = null;
+    loading.value = true;
+    await withError(() => authRepository.signOut(), "signOut");
+    loading.value = false;
+  }
+
+  async function loadSession() {
+    error.value = null;
+    loading.value = true;
+    await withError(() => authRepository.loadSession(), "loadSession");
+    loading.value = false;
+  }
+
+  function initAuthListener() {
+    authRepository.initAuthListener();
+  }
+
+  async function updateAvatar(avatarUrl: string) {
+    authRepository.updateAvatar(avatarUrl);
+    return { success: true };
+  }
 
   return {
-    id: session.user.id,
-    nickname,
-    avatarUrl: meta.avatar_url || meta.picture || meta.avatar,
+    isAuth: computed(() => user !== null),
+    currentUser: computed(() => user),
+    isLoading: computed(() => loading),
+    authError: computed(() => error),
+
+    signUp,
+    signIn,
+    signOut,
+    loadSession,
+    initAuthListener,
+    updateAvatar,
   };
-}
-
-export const useAuthStore = defineStore("auth", {
-  state: (): AuthState => ({
-    user: null,
-    loading: false,
-    error: null,
-  }),
-
-  actions: {
-    async signUp(email: string, password: string, nickname: string) {
-      this.loading = true;
-      this.error = null;
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: nickname,
-          },
-        },
-      });
-
-      this.loading = false;
-
-      if (error) {
-        this.error = error.message;
-        return { success: false, error: error.message };
-      }
-
-      if (data.session) {
-        this.user = mapSessionToUser(data.session);
-      } else if (data.user) {
-        // Email не подтверждён — сессии нет, но пользователь создан
-        this.user = {
-          id: data.user.id,
-          nickname: data.user.user_metadata?.nickname || email,
-          avatarUrl: data.user.user_metadata?.avatar_url,
-        };
-      }
-
-      return { success: true };
-    },
-
-    async signIn(email: string, password: string) {
-      this.loading = true;
-      this.error = null;
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      this.loading = false;
-
-      if (error) {
-        this.error = error.message;
-        return { success: false, error: error.message };
-      }
-
-      if (data.session) {
-        this.user = mapSessionToUser(data.session);
-      } else if (data.user) {
-        // Fallback если сессия не пришла
-        this.user = {
-          id: data.user.id,
-          nickname: data.user.user_metadata?.nickname || "",
-          avatarUrl: data.user.user_metadata?.avatar_url,
-        };
-      }
-
-      return { success: true };
-    },
-
-    async signInWithOAuth(provider: "google" | "github" | "discord") {
-      this.loading = true;
-      this.error = null;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      this.loading = false;
-
-      if (error) {
-        this.error = error.message;
-        return { success: false, error: error.message };
-      }
-
-      // signInWithOAuth редиректит, но на случай если нет — загрузим сессию
-      //await this.loadSession();
-      return { success: true };
-    },
-
-    async signOut() {
-      const { error } = await supabase.auth.signOut();
-
-      this.user = null;
-
-      if (error) {
-        this.error = error.message;
-        return { success: false, error: error.message };
-      }
-
-      return { success: true };
-    },
-
-    async loadSessionWithCode(code: string) {
-      // Если есть код авторизации, обмениваем его на сессию
-      if (code) {
-        console.log(
-          "[Auth Store] OAuth callback detected, exchanging code for session...",
-        );
-        try {
-          const { data, error } =
-            await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error("[Auth Store] exchangeCodeForSession error:", error);
-            this.error = error.message;
-            this.user = null;
-            return;
-          }
-          if (data.session) {
-            console.log(
-              "[Auth Store] Session exchanged successfully:",
-              data.session.user.email,
-            );
-            this.user = mapSessionToUser(data.session);
-            upsertUser(
-              this.user.id,
-              this.user.nickname,
-              this.user.avatarUrl || "",
-            );
-
-            return;
-          }
-        } catch (err) {
-          // Если exchangeCodeForSession не доступен или ошибка, пробуем getSession
-          console.error(
-            "[Auth Store] exchangeCodeForSession failed, falling back to getSession:",
-            err,
-          );
-        }
-      }
-    },
-
-    async loadSession() {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error("[Auth Store] getSession error:", error);
-      }
-
-      if (session?.user) {
-        this.user = mapSessionToUser(session);
-        // Upsert profile on session load (fire and forget)
-        upsertUser(this.user.id, this.user.nickname, this.user.avatarUrl || "");
-      } else {
-        this.user = null;
-      }
-    },
-
-    initAuthListener() {
-      supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          this.user = mapSessionToUser(session);
-          // Upsert profile on auth state change (fire and forget)
-          upsertUser(
-            this.user.id,
-            this.user.nickname,
-            this.user.avatarUrl || "",
-          );
-        } else {
-          this.user = null;
-        }
-      });
-    },
-
-    async updateAvatar(avatarUrl: string) {
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: avatarUrl },
-      });
-      if (updateError) throw updateError;
-
-      if (this.user) {
-        this.user.avatarUrl = avatarUrl;
-      }
-    },
-  },
-
-  getters: {
-    isAuth: (state) => state.user !== null,
-    currentUser: (state) => state.user,
-    isLoading: (state) => state.loading,
-    authError: (state) => state.error,
-  },
 });

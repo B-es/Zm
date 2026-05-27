@@ -1,4 +1,3 @@
-import { supabase } from "@/supabase";
 import type { Room } from "./room.types";
 
 /**
@@ -198,18 +197,19 @@ export function useRoomRepository() {
   /**
    * Отслеживать посещение комнаты (записать в историю)
    */
-  async function trackRoomVisit(userId: string, roomId: string): Promise<boolean> {
+  async function trackRoomVisit(
+    userId: string,
+    roomId: string,
+  ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from("room_visits")
-        .upsert(
-          {
-            user_id: userId,
-            room_id: roomId,
-            visited_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,room_id" }
-        );
+      const { error } = await supabase.from("room_visits").upsert(
+        {
+          user_id: userId,
+          room_id: roomId,
+          visited_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,room_id" },
+      );
 
       if (error) throw error;
 
@@ -236,7 +236,7 @@ export function useRoomRepository() {
             created_by,
             created_at
           )
-          `
+          `,
         )
         .eq("user_id", userId)
         .order("visited_at", { ascending: false })

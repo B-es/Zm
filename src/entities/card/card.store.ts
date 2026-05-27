@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { ref, type Ref } from "vue";
 import type { Card, CardSection } from "./card.types";
 import * as repository from "./card.repository";
-import { supabase } from "@/supabase";
 
 export interface EditingLock {
   cardId: string;
@@ -28,7 +27,7 @@ export const useCardStore = defineStore("card", () => {
   const error = ref<string | null>(null);
 
   // ===== realtime broadcast for editing =====
-  let editingChannel: ReturnType<typeof supabase.channel> | null = null;
+  let editingChannel: null = null;
   let myUserId = "";
   let myNickname = "";
 
@@ -140,7 +139,6 @@ export const useCardStore = defineStore("card", () => {
     editingDrafts.value = {};
 
     if (editingChannel) {
-      supabase.removeChannel(editingChannel);
       editingChannel = null;
     }
   };
@@ -315,9 +313,6 @@ export const useCardStore = defineStore("card", () => {
     if (subscriberCount > 0 || !channel) return; // ещё есть подписчики
     const ch = channel;
     channel = null;
-    import("@/supabase").then(({ supabase }) => {
-      supabase.removeChannel(ch);
-    });
   };
 
   return {

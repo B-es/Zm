@@ -6,7 +6,6 @@ const RoomView = () => import("@/views/RoomView.vue");
 const MainView = () => import("@/views/MainView.vue");
 const AuthView = () => import("@/views/AuthView.vue");
 const NotFoundView = () => import("@/views/NotFoundView.vue");
-const AuthCallbackView = () => import("@/views/AuthCallbackView.vue");
 
 const routes = [
   {
@@ -58,31 +57,6 @@ router.beforeEach(async (to, from) => {
   // Установка заголовка страницы
   if (to.meta.title) {
     document.title = to.meta.title as string;
-  }
-
-  // Если есть код авторизации в URL (OAuth callback) или пользователь не авторизован
-  // Загружаем сессию и проверяем
-  if (!authStore.isAuth) {
-    // Проверяем, есть ли в URL код авторизации (после OAuth редиректа)
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-
-    if (code) {
-      await authStore.loadSessionWithCode(code);
-    }
-
-    await authStore.loadSession();
-
-    // После загрузки сессии
-    if (authStore.isAuth) {
-      // Если пользователь вошёл, редиректим на connect
-
-      return { name: "connect" };
-    } else if (to.query.code) {
-      // Если код был, но сессия не загрузилась - ошибка
-      return;
-    }
   }
 
   // Проверка доступа к защищённым маршрутам

@@ -1,6 +1,5 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { supabase } from "@/supabase";
 
 export interface PeerCursor {
   userId: string;
@@ -76,7 +75,12 @@ export const useCursorStore = defineStore("cursor", () => {
     broadcastPresence(userId, nickname, avatarUrl, x, y);
   };
 
-  const joinRoom = (roomId: string, userId: string, nickname: string, avatarUrl: string) => {
+  const joinRoom = (
+    roomId: string,
+    userId: string,
+    nickname: string,
+    avatarUrl: string,
+  ) => {
     leaveRoom();
     myUserId = userId;
     myNickname = nickname;

@@ -30,5 +30,4 @@ authStore.initAuthListener();
 
 // Загружаем текущую сессию при старте
 await authStore.loadSession();
-
 app.mount("#app");
