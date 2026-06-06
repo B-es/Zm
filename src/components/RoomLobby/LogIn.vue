@@ -24,21 +24,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
-import { useRoomRepository } from "@/entities/room/room.repository";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
+import { useFormState } from "@/shared/composables/useFormState";
 
 const roomStore = useRoomStore();
-const roomRepo = useRoomRepository();
-const authStore = useAuthStore();
-const router = useRouter();
+const userStore = useUserStore();
 
 const roomNameModel = ref("");
 const roomPasswordModel = ref("");
-const loading = ref(false);
+const { loading, startLoading, stopLoading } = useFormState();
 const error = ref("");
+
+const userId = computed(() => userStore.current?.id || "");
 
 async function handleJoin() {
     if (!roomNameModel.value || !roomPasswordModel.value) {
@@ -46,29 +46,13 @@ async function handleJoin() {
         return;
     }
 
-    loading.value = true;
-    error.value = "";
+    startLoading();
 
-    const result = await roomRepo.joinRoom(
-        roomNameModel.value,
-        roomPasswordModel.value,
-    );
+    roomStore.joinRoom(roomNameModel.value, roomPasswordModel.value);
 
-    loading.value = false;
+    stopLoading();
 
-    if (result.success && result.room) {
-        roomStore.setRoom(result.room);
-
-        // Track room visit
-        const userId = authStore.currentUser?.id;
-        if (userId) {
-            await roomRepo.trackRoomVisit(userId, result.room.id);
-        }
-
-        router.push("/main");
-    } else {
-        error.value = result.error || "Ошибка входа";
-    }
+    roomStore.trackRoomVisit(userId.value);
 }
 </script>
 

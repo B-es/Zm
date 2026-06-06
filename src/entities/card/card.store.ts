@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
 import { ref, type Ref } from "vue";
 import type { Card, CardSection } from "./card.types";
-import * as repository from "./card.repository";
+import { di } from "@/di";
+import { useErrorHandler } from "@/shared/composables/useErrorHandler";
+import { useFormState } from "@/shared/composables/useFormState";
 
 export interface EditingLock {
   cardId: string;
@@ -19,11 +21,12 @@ export interface EditingDraft {
 }
 
 export const useCardStore = defineStore("card", () => {
+  const cardRepository = di.cardRepository;
+  const { withError } = useErrorHandler();
+  const { loading: isLoading, startLoading, stopLoading } = useFormState();
+
   // ===== state =====
   const cards = ref<Card[]>([]);
-  const editingLocks = ref<Record<string, string>>({}); // cardId -> userId
-  const editingDrafts = ref<Record<string, EditingDraft>>({}); // cardId -> EditingDraft
-  const isLoading = ref(false);
   const error = ref<string | null>(null);
 
   // ===== realtime broadcast for editing =====
@@ -37,112 +40,6 @@ export const useCardStore = defineStore("card", () => {
   const getCardsBySection = (section: CardSection, marked = false) =>
     cards.value.filter((c) => c.section === section && c.marked === marked);
 
-  const isCardEditingLocked = (cardId: string, userId: string) => {
-    const lock = editingLocks.value[cardId];
-    return lock !== undefined && lock !== userId;
-  };
-
-  const getCardEditor = (cardId: string) => editingLocks.value[cardId] || null;
-
-  const getCardDraft = (cardId: string) => editingDrafts.value[cardId] || null;
-
-  // ===== editing draft broadcast =====
-  const broadcastEditingDraft = (
-    cardId: string,
-    title: string,
-    description: string,
-    isEditing: boolean,
-  ) => {
-    if (!editingChannel || !myUserId) return;
-    editingChannel.send(
-      {
-        type: "broadcast",
-        event: "editing-draft",
-        payload: {
-          cardId,
-          userId: myUserId,
-          nickname: myNickname,
-          title,
-          description,
-          isEditing,
-          lastUpdate: Date.now(),
-        },
-      },
-      { httpSend: true },
-    );
-  };
-
-  const broadcastEditingLock = (cardId: string, isLocked: boolean) => {
-    if (!editingChannel || !myUserId) return;
-    editingChannel.send(
-      {
-        type: "broadcast",
-        event: "editing-lock",
-        payload: {
-          cardId,
-          userId: myUserId,
-          nickname: myNickname,
-          isLocked,
-        },
-      },
-      { httpSend: true },
-    );
-  };
-
-  const joinEditingChannel = (
-    roomId: string,
-    userId: string,
-    nickname: string,
-  ) => {
-    myUserId = userId;
-    myNickname = nickname;
-
-    const ch = supabase.channel(`card-editing:${roomId}`, {
-      config: {
-        broadcast: { self: false },
-      },
-    });
-
-    ch.on("broadcast", { event: "editing-draft" }, (payload) => {
-      const data = payload.payload as EditingDraft;
-      if (data.isEditing) {
-        editingDrafts.value[data.cardId] = data;
-      } else {
-        delete editingDrafts.value[data.cardId];
-      }
-    });
-
-    ch.on("broadcast", { event: "editing-lock" }, (payload) => {
-      const data = payload.payload as {
-        cardId: string;
-        userId: string;
-        nickname: string;
-        isLocked: boolean;
-      };
-      if (data.isLocked) {
-        editingLocks.value[data.cardId] = data.userId;
-      } else {
-        delete editingLocks.value[data.cardId];
-      }
-    });
-
-    editingChannel = ch;
-    ch.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-      }
-    });
-  };
-
-  const leaveEditingChannel = () => {
-    myUserId = "";
-    myNickname = "";
-    editingDrafts.value = {};
-
-    if (editingChannel) {
-      editingChannel = null;
-    }
-  };
-
   // ===== actions =====
   const setCards = (newCards: Card[]) => {
     cards.value = [...newCards];
@@ -150,45 +47,20 @@ export const useCardStore = defineStore("card", () => {
 
   const loadCards = async (roomId: string) => {
     if (!roomId) throw new Error("roomId обязателен");
-    isLoading.value = true;
+    startLoading();
     error.value = null;
-    try {
-      const fetched = await repository.fetchCardsByRoom(roomId);
+
+    await withError(async () => {
+      const fetched = await cardRepository.fetchCardsByRoom(roomId);
       cards.value = fetched;
-    } catch (e: any) {
-      error.value = e.message || "Ошибка загрузки карточек";
-      throw e;
-    } finally {
-      isLoading.value = false;
-    }
-  };
+    }, "Ошибка загрузки карточек");
 
-  const startEditing = (
-    cardId: string,
-    userId: string,
-  ): { success: boolean; editor?: string } => {
-    const currentLock = editingLocks.value[cardId];
-    if (currentLock && currentLock !== userId) {
-      return { success: false, editor: currentLock };
-    }
-    editingLocks.value[cardId] = userId;
-    return { success: true };
-  };
-
-  const stopEditing = (cardId: string) => {
-    delete editingLocks.value[cardId];
+    stopLoading();
   };
 
   const markCard = async (cardId: string): Promise<Card | null> => {
     const existing = getCardById(cardId);
     if (!existing) return null;
-
-    // Снимаем блокировку редактирования при маркировке/размаркировке
-    const wasLocked = editingLocks.value[cardId];
-    if (wasLocked) {
-      stopEditing(cardId);
-      broadcastEditingLock(cardId, false);
-    }
 
     const updated: Card = {
       ...existing,
@@ -197,7 +69,11 @@ export const useCardStore = defineStore("card", () => {
       updatedBy: existing.updatedBy,
     };
 
-    const saved = await repository.saveCard(updated);
+    const saved = await withError(
+      async () => await cardRepository.saveCard(updated),
+      "markCard",
+    );
+    if (saved === null) return null;
     addOrUpdateCard(saved);
     return saved;
   };
@@ -208,7 +84,7 @@ export const useCardStore = defineStore("card", () => {
     userId: string,
     title: string,
     description: string,
-  ): Promise<Card> => {
+  ): Promise<Card | null> => {
     if (!roomId) throw new Error("roomId обязателен");
     const now = new Date().toISOString();
     const newCard: Card = {
@@ -224,7 +100,12 @@ export const useCardStore = defineStore("card", () => {
       updatedBy: userId,
     };
 
-    const saved = await repository.saveCard(newCard);
+    const saved = await withError(
+      async () => await cardRepository.saveCard(newCard),
+      "addCard",
+    );
+
+    if (saved === null) return null;
     addOrUpdateCard(saved);
     return saved;
   };
@@ -243,14 +124,22 @@ export const useCardStore = defineStore("card", () => {
       updatedAt: new Date().toISOString(),
       updatedBy: userId,
     };
+    const saved = await withError(
+      async () => await cardRepository.saveCard(updated),
+      "updateCard",
+    );
+    if (saved === null) return null;
 
-    const saved = await repository.saveCard(updated);
     addOrUpdateCard(saved);
     return saved;
   };
 
   const deleteCard = async (cardId: string): Promise<void> => {
-    await repository.deleteCardById(cardId);
+    const saved = await withError(
+      async () => await cardRepository.deleteCardById(cardId),
+      "deleteCard",
+    );
+    if (saved === null) return;
     removeCard(cardId);
   };
 
@@ -258,7 +147,7 @@ export const useCardStore = defineStore("card", () => {
     cardId: string,
     bannerUrl: string,
   ): Promise<void> => {
-    await repository.updateCardBanner(cardId, bannerUrl);
+    await cardRepository.updateCardBanner(cardId, bannerUrl);
 
     // Обновляем локально
     const card = getCardById(cardId);
@@ -278,63 +167,33 @@ export const useCardStore = defineStore("card", () => {
     } else {
       cards.value.push(card);
     }
+    console.log(cards.value);
   };
 
   const removeCard = (cardId: string) => {
     cards.value = cards.value.filter((c) => c.id !== cardId);
-    stopEditing(cardId);
   };
 
-  // ===== realtime event handler =====
-  const applyRealtime = (event: { type: string; payload: any }) => {
-    switch (event.type) {
-      case "CARD_UPDATE":
-        addOrUpdateCard(event.payload);
-        break;
-
-      case "CARD_DELETE":
-        removeCard(event.payload.id);
-        break;
-    }
-  };
-
-  // ===== realtime subscription =====
-  let channel: ReturnType<typeof repository.subscribeToRoomCards> | null = null;
-  let subscriberCount = 0;
-
-  const subscribeToRealtime = (roomId: string) => {
-    subscriberCount++;
-    if (channel) return; // уже подписаны
-    channel = repository.subscribeToRoomCards(roomId, applyRealtime);
-  };
-
-  const unsubscribeFromRealtime = () => {
-    subscriberCount = Math.max(0, subscriberCount - 1);
-    if (subscriberCount > 0 || !channel) return; // ещё есть подписчики
-    const ch = channel;
-    channel = null;
-  };
+  async function getCardEditor(cardId: string) {
+    return await withError(
+      async () => await cardRepository.getCardEditor(cardId),
+      "getCardEditor",
+    );
+  }
 
   return {
     // state
     cards,
-    editingLocks,
-    editingDrafts,
     isLoading,
     error,
 
     // getters
     getCardById,
     getCardsBySection,
-    isCardEditingLocked,
-    getCardEditor,
-    getCardDraft,
 
     // actions
     setCards,
     loadCards,
-    startEditing,
-    stopEditing,
     addCard,
     updateCard,
     deleteCard,
@@ -342,12 +201,6 @@ export const useCardStore = defineStore("card", () => {
     markCard,
     addOrUpdateCard,
     removeCard,
-    applyRealtime,
-    subscribeToRealtime,
-    unsubscribeFromRealtime,
-    broadcastEditingDraft,
-    broadcastEditingLock,
-    joinEditingChannel,
-    leaveEditingChannel,
+    getCardEditor,
   };
 });

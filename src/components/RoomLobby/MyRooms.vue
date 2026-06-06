@@ -7,20 +7,23 @@
             >
                 Мои комнаты
             </h3>
-            <div v-if="loadingOwned" class="text-gray-500 text-center py-4">
+            <div
+                v-if="ownedSet.loadingOwned"
+                class="text-gray-500 text-center py-4"
+            >
                 Загрузка...
             </div>
             <div
-                v-else-if="ownedRooms.length === 0"
+                v-else-if="ownedSet.ownedRooms.length === 0"
                 class="text-gray-500 text-center py-4"
             >
                 У тебя пока нет комнат
             </div>
             <div v-else class="flex flex-col gap-3">
                 <button
-                    v-for="room in ownedRooms"
+                    v-for="room in ownedSet.ownedRooms"
                     :key="room.id"
-                    @click="selectRoom(room)"
+                    @click="roomStore.selectRoom(room)"
                     class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition"
                 >
                     <p class="font-medium text-gray-800">{{ room.title }}</p>
@@ -36,7 +39,7 @@
 
         <!-- Visited Rooms Section -->
         <div
-            v-if="visitedRooms.length > 0"
+            v-if="visitedSet.visitedRooms.length > 0"
             class="border-t border-gray-200 pt-4"
         >
             <h3
@@ -44,14 +47,17 @@
             >
                 История посещений
             </h3>
-            <div v-if="loadingVisited" class="text-gray-500 text-center py-4">
+            <div
+                v-if="visitedSet.loadingVisited"
+                class="text-gray-500 text-center py-4"
+            >
                 Загрузка...
             </div>
             <div v-else class="flex flex-col gap-3">
                 <button
-                    v-for="room in visitedRooms"
+                    v-for="room in visitedSet.visitedRooms"
                     :key="room.id"
-                    @click="selectRoom(room)"
+                    @click="roomStore.selectRoom(room)"
                     class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition"
                 >
                     <p class="font-medium text-gray-800">{{ room.title }}</p>
@@ -73,21 +79,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
-import { useRoomRepository } from "@/entities/room/room.repository";
 import { useUserStore } from "@/entities/user/user.store";
-import type { Room } from "@/entities/room/room.types";
 
 const roomStore = useRoomStore();
-const roomRepo = useRoomRepository();
-const userStore = useUserStore();
-const router = useRouter();
 
-const ownedRooms = ref<Room[]>([]);
-const visitedRooms = ref<Room[]>([]);
-const loadingOwned = ref(true);
-const loadingVisited = ref(true);
+const ownedSet = roomStore.ownedSet;
+const visitedSet = roomStore.visitedSet;
+
+const userStore = useUserStore();
+
 const error = ref("");
 
 const userId = computed(() => userStore.current?.id || "");
@@ -96,26 +97,16 @@ console.log(userStore.current);
 onMounted(async () => {
     if (!userId.value) {
         error.value = "Необходимо войти в аккаунт";
-        loadingOwned.value = false;
-        loadingVisited.value = false;
+        ownedSet.stopLoadingOwned();
+        visitedSet.stopLoadingVisited();
         return;
     }
-
     // Load owned rooms
-    ownedRooms.value = await roomRepo.getRoomsByUser(userId.value);
-    loadingOwned.value = false;
+    await ownedSet.loadOwnedRooms(userId.value);
 
     // Load visited rooms (excluding owned rooms)
-    const allVisited = await roomRepo.getVisitedRooms(userId.value);
-    const ownedIds = new Set(ownedRooms.value.map((r) => r.id));
-    visitedRooms.value = allVisited.filter((r) => !ownedIds.has(r.id));
-    loadingVisited.value = false;
+    await visitedSet.loadVisitedRoomsExceptOwned(userId.value);
 });
-
-function selectRoom(room: Room) {
-    roomStore.setRoom(room);
-    router.push("/main");
-}
 
 function formatDate(iso: string): string {
     if (!iso) return "";

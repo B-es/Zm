@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { getPeerColor } from "@/utils/peerColor";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
 
 interface Props {
     x: number;
@@ -36,8 +36,8 @@ withDefaults(defineProps<Props>(), {
     visible: true,
 });
 
-const authStore = useAuthStore();
-const userId = authStore.currentUser?.id || "";
+const userStore = useUserStore();
+const userId = userStore.current?.id || "";
 const cursorColor = getPeerColor(userId);
 </script>
 

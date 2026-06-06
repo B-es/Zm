@@ -1,25 +1,14 @@
 import type { Room } from "./room.types";
 
-interface IRoomRepository {
+export interface IRoomRepository {
   isRoomExists(roomName: string): Promise<boolean>;
   getRoom(roomName: string, password: string): Promise<Room | null>;
   createRoom(
     roomName: string,
     password: string,
     createdBy: string,
-  ): Promise<{
-    success: boolean;
-    room?: Room;
-    error?: string;
-  }>;
-  joinRoom(
-    roomName: string,
-    password: string,
-  ): Promise<{
-    success: boolean;
-    room?: Room;
-    error?: string;
-  }>;
+  ): Promise<Room | null>;
+  joinRoom(roomName: string, password: string): Promise<Room | null>;
 
   getAllRooms(): Promise<Room[]>;
 

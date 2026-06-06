@@ -1,7 +1,7 @@
 <template>
     <!-- Чужие курсоры поверх страницы -->
     <div
-        v-for="(peer, userId) in cursorStore.peers"
+        v-for="(peer, userId) in []"
         :key="userId"
         class="peer-cursor"
         :style="{ left: `${peer.x}px`, top: `${peer.y}px` }"
@@ -20,17 +20,17 @@
                 stroke-width="1.5"
             />
         </svg>
-        <span class="peer-label" :style="{ backgroundColor: getPeerColor(userId) }">
+        <span
+            class="peer-label"
+            :style="{ backgroundColor: getPeerColor(userId) }"
+        >
             {{ peer.nickname }}
         </span>
     </div>
 </template>
 
 <script setup lang="ts">
-import { useCursorStore } from "@/entities/cursor/cursor.store";
 import { getPeerColor } from "@/utils/peerColor";
-
-const cursorStore = useCursorStore();
 </script>
 
 <style scoped>

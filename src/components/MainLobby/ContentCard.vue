@@ -67,21 +67,7 @@
                     @dblclick.stop="handleTitleDblClick"
                     @keydown="handleTitleKeydown"
                 />
-                <!-- Live editing draft from other user -->
-                <div
-                    v-if="isEditingByOther && !isEditing"
-                    class="mb-2 p-2 bg-blue-50 rounded text-sm"
-                >
-                    <p class="text-blue-600 font-medium">
-                        ✏️ {{ editingUserName }} редактирует:
-                    </p>
-                    <p v-if="editingDraftTitle" class="text-blue-500 mt-1">
-                        {{ editingDraftTitle }}
-                    </p>
-                    <p v-if="editingDraftDescription" class="text-blue-400">
-                        {{ editingDraftDescription }}
-                    </p>
-                </div>
+
                 <hr class="p-1" />
                 <!-- Markdown preview в режиме просмотра -->
                 <div
@@ -305,7 +291,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
 import { useCardStore } from "@/entities/card/card.store";
-import { getUserNicknames } from "@/entities/user/user.repository";
 import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt({
@@ -478,7 +463,8 @@ const loadUserNicknames = async () => {
     ].filter((id) => id && id !== props.userId);
 
     if (userIds.length > 0) {
-        const nicknames = await getUserNicknames(userIds);
+        //TODO: Заменить userNicknames
+        const nicknames = new Map();
         userNicknames.value = nicknames;
     }
 };
@@ -493,26 +479,6 @@ const canEdit = computed(() => {
     return !isLockedByOther.value && !isMarked.value;
 });
 
-const editingDraft = computed(() => {
-    return cardStore.getCardDraft(props.cardId);
-});
-
-const editingDraftTitle = computed(() => {
-    return editingDraft.value?.title || "";
-});
-
-const editingDraftDescription = computed(() => {
-    return editingDraft.value?.description || "";
-});
-
-const isEditingByOther = computed(() => {
-    return editingDraft.value && editingDraft.value.userId !== props.userId;
-});
-
-const editingUserName = computed(() => {
-    return editingDraft.value?.nickname || "";
-});
-
 // Отменить редактирование
 const cancel = async () => {
     isEditing.value = false;
@@ -525,10 +491,6 @@ const cancel = async () => {
         description: props.description || "",
         isEditing: false,
     });
-
-    // Снять блокировку и broadcast
-    cardStore.stopEditing(props.cardId);
-    cardStore.broadcastEditingLock(props.cardId, false);
 
     emit("stop-edit", props.cardId);
 
@@ -615,15 +577,7 @@ const startEditing = async (autoFocus = true) => {
     )
         return;
 
-    // Сначала запрашиваем блокировку
-    const result = cardStore.startEditing(props.cardId, props.userId || "");
-    if (!result.success && result.editor) {
-        // Карточка уже заблокирована другим пользователем
-        return;
-    }
-
     // Блокировка получена — broadcast другим
-    cardStore.broadcastEditingLock(props.cardId, true);
 
     isEditing.value = true;
     showHint.value = false;
@@ -674,8 +628,6 @@ const save = async () => {
         });
 
         // Снять блокировку и broadcast
-        cardStore.stopEditing(props.cardId);
-        cardStore.broadcastEditingLock(props.cardId, false);
 
         emit("stop-edit", props.cardId);
         isEditing.value = false;

@@ -52,8 +52,6 @@
                 :created-by="card.createdBy"
                 :updated-by="card.updatedBy"
                 :user-id="currentUserId"
-                :locked-by="cardStore.getCardEditor(card.id)"
-                :can-start-edit="canEditCard(card.id)"
                 @request-edit="onRequestEdit"
                 @update="(data) => onUpdateCard(card.id, data)"
                 @stop-edit="onStopEdit(card.id)"
@@ -72,14 +70,6 @@
         >
             + Добавить новую карточку
         </button>
-
-        <!-- Toast уведомление -->
-        <div
-            v-if="toastMessage"
-            class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300"
-        >
-            {{ toastMessage }}
-        </div>
     </div>
 </template>
 
@@ -88,9 +78,10 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import ContentCard from "./ContentCard.vue";
 import archiveIcon from "/archive_icon.svg";
 import { useCardStore } from "@/entities/card/card.store";
-import { useAuthStore } from "@/entities/auth/auth.store";
 import { useRoomStore } from "@/entities/room/room.store";
 import type { CardSection } from "@/entities/card/card.types";
+import { useUserStore } from "@/entities/user/user.store";
+import { useToastStore } from "@/entities/toast.store";
 
 const props = withDefaults(
     defineProps<{
@@ -102,15 +93,19 @@ const props = withDefaults(
     },
 );
 
+const {
+    show: showToast,
+    hide: hideToast,
+    message: messageToast,
+} = useToastStore();
+
 const cardStore = useCardStore();
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const roomStore = useRoomStore();
 
-const toastMessage = ref<string | null>(null);
 const isArchive = ref(false);
-let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const currentUserId = computed(() => authStore.currentUser?.id || "");
+const currentUserId = computed(() => userStore.current?.id || "");
 
 const sectionCards = computed(() => {
     return cardStore.getCardsBySection(props.section, isArchive.value);
@@ -120,24 +115,13 @@ const toggleArchive = () => {
     isArchive.value = !isArchive.value;
 };
 
-const showToast = (message: string) => {
-    toastMessage.value = message;
-    if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toastMessage.value = null;
-    }, 3000);
-};
-
-const canEditCard = (cardId: string) => {
-    const editor = cardStore.getCardEditor(cardId);
-    return !editor || editor === currentUserId.value;
+const canEditCard = async (cardId: string) => {
+    const editor = await cardStore.getCardEditor(cardId);
+    return !editor || editor.id === currentUserId.value;
 };
 
 const onRequestEdit = (cardId: string) => {
-    const result = cardStore.startEditing(cardId, currentUserId.value);
-    if (!result.success && result.editor) {
-        showToast(`Карточка редактируется пользователем ${result.editor}`);
-    }
+    showToast("onRequestEdit", "info");
 };
 
 const onUpdateCard = async (
@@ -152,7 +136,7 @@ const onUpdateCard = async (
 };
 
 const onStopEdit = (cardId: string) => {
-    cardStore.stopEditing(cardId);
+    showToast("onStopEdit", "info");
 };
 
 const onEditingDraft = (payload: {
@@ -161,12 +145,7 @@ const onEditingDraft = (payload: {
     description: string;
     isEditing: boolean;
 }) => {
-    cardStore.broadcastEditingDraft(
-        payload.cardId,
-        payload.title,
-        payload.description,
-        payload.isEditing,
-    );
+    showToast("onEditingDraft", "info");
 };
 
 const onMarkCard = async (cardId: string) => {
@@ -203,6 +182,7 @@ const onAddCard = async () => {
         return;
     }
     try {
+        console.log("Создаём");
         await cardStore.addCard(
             roomStore.roomId,
             props.section,
@@ -217,29 +197,15 @@ const onAddCard = async () => {
 
 onMounted(async () => {
     if (!roomStore.roomId) {
-        showToast("Ошибка: комната не выбрана");
+        showToast("Ошибка: комната не выбрана", "error");
         return;
     }
     try {
         await cardStore.loadCards(roomStore.roomId);
-        cardStore.subscribeToRealtime(roomStore.roomId);
-
-        // Join the editing broadcast channel
-        const user = authStore.currentUser;
-        if (user) {
-            cardStore.joinEditingChannel(
-                roomStore.roomId,
-                user.id,
-                user.nickname,
-            );
-        }
     } catch (e: any) {
         showToast(`Ошибка загрузки: ${e.message}`);
     }
 });
 
-onUnmounted(() => {
-    cardStore.unsubscribeFromRealtime();
-    cardStore.leaveEditingChannel();
-});
+onUnmounted(() => {});
 </script>

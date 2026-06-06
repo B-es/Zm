@@ -15,9 +15,9 @@
                     <!-- Аватар справа сверху -->
                     <AvatarBlock
                         :avatar-url="
-                            authStore.currentUser?.avatarUrl || defaultAvatarUrl
+                            userStore.current?.avatarUrl || defaultAvatarUrl
                         "
-                        :title="authStore.currentUser?.nickname || ''"
+                        :title="userStore.current?.nickname || ''"
                         :description="String(roomStore.roomTitle)"
                     ></AvatarBlock>
                 </div>
@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import AvatarBlock from "@/components/MainLobby/AvatarBlock.vue";
+import AvatarBlock from "@/shared/components/AvatarBlock.vue";
 import Button from "@/shared/components/Button.vue";
 import CardSection from "@/components/MainLobby/CardSection.vue";
 import PeerCursors from "@/components/MainLobby/PeerCursors.vue";
@@ -80,15 +80,15 @@ import ConnectedUsers from "@/components/MainLobby/ConnectedUsers.vue";
 import { useCardStore } from "@/entities/card/card.store";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useAuthStore } from "@/entities/auth/auth.store";
-import { useCursorStore } from "@/entities/cursor/cursor.store";
 import { useConnectionStore } from "@/entities/connection/connection.store";
 import { useLeave } from "@/shared/composables/useLeave";
 import { defaultAvatarUrl } from "@/utils/defaultUrl";
+import { useUserStore } from "@/entities/user/user.store";
 
+const userStore = useUserStore();
 const authStore = useAuthStore();
 const roomStore = useRoomStore();
 const cardStore = useCardStore();
-const cursorStore = useCursorStore();
 const connectionStore = useConnectionStore();
 const router = useRouter();
 
@@ -98,34 +98,15 @@ const cursorPosition = reactive({ x: -100, y: -100 });
 
 // ===== Mouse tracking =====
 const handleMouseMove = (e: MouseEvent) => {
-    const user = authStore.currentUser;
+    const user = userStore.current;
     if (!user) return;
-
     cursorPosition.x = e.clientX;
     cursorPosition.y = e.clientY;
-
-    cursorStore.broadcastPosition(
-        user.id,
-        user.nickname,
-        user.avatarUrl || "",
-        e.clientX,
-        e.clientY,
-    );
 };
 
 // ===== Online/Offline handlers =====
 function handleOnline() {
     connectionStore.connectionStatus = "connected";
-    // Переподключаемся к комнате если нужно
-    if (roomStore.roomId && authStore.currentUser) {
-        cardStore.subscribeToRealtime(roomStore.roomId);
-        cursorStore.joinRoom(
-            roomStore.roomId,
-            authStore.currentUser.id,
-            authStore.currentUser.nickname,
-            authStore.currentUser.avatarUrl || "",
-        );
-    }
 }
 
 function handleOffline() {
@@ -134,12 +115,12 @@ function handleOffline() {
 
 onMounted(async () => {
     // Ждём пока загрузится сессия если ещё не загружена
-    if (!authStore.currentUser) {
+    if (!userStore.current) {
         // Пробуем загрузить сессию
         await authStore.loadSession();
     }
 
-    const user = authStore.currentUser;
+    const user = userStore.current;
     if (!user) {
         console.log(
             "[MainView] User not authenticated after session load, redirecting",
@@ -165,16 +146,7 @@ onMounted(async () => {
         connectionStore.markAsConnected();
 
         // Переподписываемся на realtime и загружаем карточки
-        cardStore.subscribeToRealtime(roomStore.roomId);
         cardStore.loadCards(roomStore.roomId).catch(() => {});
-
-        // Подключаемся к курсорам
-        cursorStore.joinRoom(
-            roomStore.roomId,
-            user.id,
-            user.nickname,
-            user.avatarUrl || "",
-        );
     }
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -188,8 +160,7 @@ onUnmounted(() => {
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("online", handleOnline);
     window.removeEventListener("offline", handleOffline);
-    cursorStore.leaveRoom();
-    cardStore.unsubscribeFromRealtime();
+    handleLeaveRoom();
 });
 </script>
 

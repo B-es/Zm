@@ -1,6 +1,8 @@
 <template>
     <div
-        v-for="(peer, userId) in cursorStore.peers"
+        v-for="(peer, userId) in [
+            { peer: 'tot', userId: '2y', avatarUrl: '', nickname: 'Uf' },
+        ]"
         :key="userId"
         class="flex items-center gap-2"
     >
@@ -15,11 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import Avatar from "./Avatar.vue";
-import { useCursorStore } from "@/entities/cursor/cursor.store";
+import Avatar from "@/shared/components/Avatar.vue";
 import { getPeerColor } from "@/utils/peerColor";
-
-const cursorStore = useCursorStore();
 
 interface Props {
     avatarUrl: string;

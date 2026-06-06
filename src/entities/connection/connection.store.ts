@@ -1,10 +1,8 @@
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { useRoomStore } from "@/entities/room/room.store";
-import { useAuthStore } from "@/entities/auth/auth.store";
 import { useCardStore } from "@/entities/card/card.store";
-import { useCursorStore } from "@/entities/cursor/cursor.store";
-import router from "@/router";
+import { useUserStore } from "../user/user.store";
 
 const CONNECTION_STATUS_KEY = "zm_connection_status";
 
@@ -26,18 +24,17 @@ export const useConnectionStore = defineStore("connection", () => {
   );
 
   const roomStore = useRoomStore();
-  const authStore = useAuthStore();
+  const userStore = useUserStore();
   const cardStore = useCardStore();
-  const cursorStore = useCursorStore();
 
   /**
    * Сохраняем состояние подключения для восстановления после перезагрузки
    */
   function saveConnectionState() {
-    if (roomStore.roomId && authStore.currentUser) {
+    if (roomStore.roomId && userStore.current) {
       const state: LastConnectionState = {
         roomId: roomStore.roomId,
-        userId: authStore.currentUser.id,
+        userId: userStore.current.id,
         timestamp: Date.now(),
       };
       localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
@@ -84,7 +81,7 @@ export const useConnectionStore = defineStore("connection", () => {
     }
 
     // Проверяем, что пользователь авторизован
-    if (!authStore.currentUser) {
+    if (!userStore.current) {
       return false;
     }
 
@@ -93,16 +90,7 @@ export const useConnectionStore = defineStore("connection", () => {
 
     try {
       // Подписываемся на realtime и загружаем карточки
-      cardStore.subscribeToRealtime(roomStore.roomId);
       await cardStore.loadCards(roomStore.roomId);
-
-      // Подключаемся к курсорам
-      cursorStore.joinRoom(
-        roomStore.roomId,
-        authStore.currentUser.id,
-        authStore.currentUser.nickname,
-        authStore.currentUser.avatarUrl || "",
-      );
 
       connectionStatus.value = "connected";
       isReconnecting.value = false;
@@ -127,8 +115,6 @@ export const useConnectionStore = defineStore("connection", () => {
    * Отключение от комнаты (при выходе)
    */
   function disconnectFromRoom() {
-    cursorStore.leaveRoom();
-    cardStore.unsubscribeFromRealtime();
     clearConnectionState();
     connectionStatus.value = "disconnected";
   }

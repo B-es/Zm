@@ -4,9 +4,8 @@ import { di } from "../../di";
 import { useErrorHandler } from "@/shared/composables/useErrorHandler";
 import router from "@/router";
 
-const authRepository = di.authRepository;
-
 export const useAuthStore = defineStore("auth", () => {
+  const authRepository = di.authRepository;
   const { withError } = useErrorHandler();
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -50,6 +49,8 @@ export const useAuthStore = defineStore("auth", () => {
       router.push("/");
     });
   }
+
+  signUp("XTO", "123456");
 
   return {
     isAuth: computed(() => authState.value === "authed"),

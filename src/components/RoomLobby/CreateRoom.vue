@@ -6,6 +6,8 @@
             name="roomName"
             placeholder="Придумай название"
             v-model="roomNameModel"
+            :error="!!error"
+            :errorMessage="error"
         />
         <Input
             label="Пароль"
@@ -25,21 +27,17 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
-import { useRoomRepository } from "@/entities/room/room.repository";
-
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
+import { useFormState } from "@/shared/composables/useFormState";
 
 const roomStore = useRoomStore();
-const roomRepo = useRoomRepository();
-const authStore = useAuthStore();
-const router = useRouter();
+const userStore = useUserStore();
 
 const roomNameModel = ref("");
 const roomPasswordModel = ref("");
-const loading = ref(false);
 const error = ref("");
+const { startLoading, stopLoading, loading } = useFormState();
 
 async function handleCreate() {
     if (!roomNameModel.value || !roomPasswordModel.value) {
@@ -47,23 +45,15 @@ async function handleCreate() {
         return;
     }
 
-    loading.value = true;
-    error.value = "";
+    startLoading();
 
-    const result = await roomRepo.createRoom(
+    await roomStore.createRoom(
         roomNameModel.value,
         roomPasswordModel.value,
-        authStore.currentUser?.id || "",
+        userStore.current?.id || "",
     );
 
-    loading.value = false;
-
-    if (result.success && result.room) {
-        roomStore.setRoom(result.room);
-        router.push("/main");
-    } else {
-        error.value = result.error || "Неизвестная ошибка";
-    }
+    stopLoading();
 }
 </script>
 
