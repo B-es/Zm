@@ -10,8 +10,8 @@ export interface Card {
   marked: boolean;
   bannerUrl?: string;
 
-  createdBy: string;
+  createdBy: number;
   createdAt: string;
   updatedAt: string;
-  updatedBy: string;
+  updatedBy: number;
 }

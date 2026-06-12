@@ -102,10 +102,10 @@ onMounted(async () => {
         return;
     }
     // Load owned rooms
-    await ownedSet.loadOwnedRooms(userId.value);
+    await ownedSet.loadOwnedRooms();
 
     // Load visited rooms (excluding owned rooms)
-    await visitedSet.loadVisitedRoomsExceptOwned(userId.value);
+    await visitedSet.loadVisitedRoomsExceptOwned();
 });
 
 function formatDate(iso: string): string {

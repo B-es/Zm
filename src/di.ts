@@ -1,9 +1,13 @@
-import { NoneAuthRepository } from "./entities/auth/none.auth.repository";
-import { NoneCardRepository } from "./entities/card/none.card.repository";
-import { NoneRoomRepository } from "./entities/room/none.room.repository";
+import { FapiAuthRepository } from "./entities/auth/fapi.auth.repository";
+import { FapiCardRepository } from "./entities/card/fapi.card.repository";
+import { FapiRoomRepository } from "./entities/room/fapi.room.repository";
 
 export const di = {
-  authRepository: new NoneAuthRepository(),
-  roomRepository: new NoneRoomRepository(),
-  cardRepository: new NoneCardRepository(),
+  authRepository: new FapiAuthRepository(),
+  roomRepository: new FapiRoomRepository("http://localhost:8000", async () =>
+    localStorage.getItem("access_token"),
+  ),
+  cardRepository: new FapiCardRepository("http://localhost:8000", async () =>
+    localStorage.getItem("access_token"),
+  ),
 };

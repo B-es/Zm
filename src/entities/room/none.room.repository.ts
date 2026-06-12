@@ -21,15 +21,10 @@ export class NoneRoomRepository implements IRoomRepository {
   getRoom(roomName: string, password: string): Promise<Room | null> {
     throw new Error("Method not implemented.");
   }
-  async createRoom(
-    roomName: string,
-    password: string,
-    createdBy: string,
-  ): Promise<Room | null> {
+  async createRoom(roomName: string, password: string): Promise<Room | null> {
     const room = {
       password,
       title: roomName,
-      createdBy,
       createdAt: new Date().toTimeString(),
     } as Room;
     console.log("Типо создал комнату", room);
@@ -48,7 +43,7 @@ export class NoneRoomRepository implements IRoomRepository {
   getAllRooms(): Promise<Room[]> {
     throw new Error("Method not implemented.");
   }
-  async getRoomsByUser(userId: string): Promise<Room[]> {
+  async getRoomsByUser(): Promise<Room[]> {
     const rooms: Room[] = [
       {
         createdAt: "131",
@@ -64,15 +59,14 @@ export class NoneRoomRepository implements IRoomRepository {
   deleteRoom(roomId: string): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
-  async trackRoomVisit(userId: string, roomId: string): Promise<boolean> {
-    console.log("Track", userId, roomId);
+  async trackRoomVisit(roomId: string): Promise<boolean> {
+    console.log("Track", roomId);
     return true;
   }
-  async getVisitedRooms(userId: string): Promise<Room[]> {
+  async getVisitedRooms(): Promise<Room[]> {
     const rooms: Room[] = [
       {
         createdAt: "131",
-        createdBy: userId,
         id: "1",
         title: "title",
         password: "1",

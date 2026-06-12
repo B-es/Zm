@@ -19,7 +19,7 @@
             :error="!!error"
             :errorMessage="error"
         />
-        <Button :disabled="loading" @click="handleCreate">
+        <Button :disabled="loading" @click="handleCreate" type="button">
             {{ loading ? "Создание..." : "Создать комнату" }}
         </Button>
     </FormContainer>
@@ -28,11 +28,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRoomStore } from "@/entities/room/room.store";
-import { useUserStore } from "@/entities/user/user.store";
 import { useFormState } from "@/shared/composables/useFormState";
 
 const roomStore = useRoomStore();
-const userStore = useUserStore();
 
 const roomNameModel = ref("");
 const roomPasswordModel = ref("");
@@ -47,11 +45,7 @@ async function handleCreate() {
 
     startLoading();
 
-    await roomStore.createRoom(
-        roomNameModel.value,
-        roomPasswordModel.value,
-        userStore.current?.id || "",
-    );
+    await roomStore.createRoom(roomNameModel.value, roomPasswordModel.value);
 
     stopLoading();
 }

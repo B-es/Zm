@@ -45,20 +45,19 @@ export const useRoomStore = defineStore("room", () => {
   const ownedRooms = ref<Room[]>([]);
   const visitedRooms = ref<Room[]>([]);
 
-  async function loadOwnedRooms(userId: string) {
+  async function loadOwnedRooms() {
     startLoadingOwned();
     await withError(
-      async () =>
-        (ownedRooms.value = await roomRepository.getRoomsByUser(userId)),
+      async () => (ownedRooms.value = await roomRepository.getRoomsByUser()),
       "loadOwnedRooms",
     );
     stopLoadingOwned();
   }
 
-  async function loadVisitedRoomsExceptOwned(userId: string) {
+  async function loadVisitedRoomsExceptOwned() {
     startLoadingVisited();
     await withError(async () => {
-      const allVisited = await roomRepository.getVisitedRooms(userId);
+      const allVisited = await roomRepository.getVisitedRooms();
       const ownedIds = new Set(ownedRooms.value.map((r) => r.id));
       visitedRooms.value = allVisited.filter((r) => !ownedIds.has(r.id));
     }, "loadVisitedRoomsExceptOwned");
@@ -75,17 +74,9 @@ export const useRoomStore = defineStore("room", () => {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  async function createRoom(
-    roomName: string,
-    password: string,
-    createdBy: string,
-  ) {
+  async function createRoom(roomName: string, password: string) {
     await withError(async () => {
-      const room = await roomRepository.createRoom(
-        roomName,
-        password,
-        createdBy,
-      );
+      const room = await roomRepository.createRoom(roomName, password);
 
       if (room === null) return;
       setRoom(room);
@@ -96,16 +87,15 @@ export const useRoomStore = defineStore("room", () => {
   async function joinRoom(roomName: string, password: string) {
     await withError(async () => {
       const room = await roomRepository.joinRoom(roomName, password);
-
+      console.log(room);
       if (room === null) return;
       setRoom(room);
     }, "joinRoom");
   }
 
-  async function trackRoomVisit(userId: string) {
+  async function trackRoomVisit() {
     await withError(async () => {
       const flag = await roomRepository.trackRoomVisit(
-        userId,
         roomState.value?.room?.id ?? "",
       );
       if (!flag) throw new Error("Не смог трекнуть");

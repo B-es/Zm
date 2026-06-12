@@ -3,8 +3,10 @@ import { computed, ref, watch } from "vue";
 import { di } from "../../di";
 import { useErrorHandler } from "@/shared/composables/useErrorHandler";
 import router from "@/router";
+import { useUserStore } from "../user/user.store";
 
 export const useAuthStore = defineStore("auth", () => {
+  const userStore = useUserStore();
   const authRepository = di.authRepository;
   const { withError } = useErrorHandler();
   const loading = ref(false);
@@ -14,33 +16,51 @@ export const useAuthStore = defineStore("auth", () => {
   async function signUp(nickname: string, password: string) {
     error.value = null;
     loading.value = true;
-    await withError(() => authRepository.signUp(nickname, password), "signUp");
+    await withError(async () => {
+      await authRepository.signUp(nickname, password);
+      await loadSession();
+    }, "signUp");
     loading.value = false;
-    authState.value = "authed";
   }
 
   async function signIn(nickname: string, password: string) {
     error.value = null;
     loading.value = true;
-    await withError(() => authRepository.signIn(nickname, password), "signIn");
+    await withError(async () => {
+      await authRepository.signIn(nickname, password);
+      await loadSession();
+    }, "signIn");
     loading.value = false;
-    authState.value = "authed";
   }
 
   async function signOut() {
     error.value = null;
     loading.value = true;
-    await withError(() => authRepository.signOut(), "signOut");
+    await withError(async () => {
+      await authRepository.signOut();
+      authState.value = "unauthed";
+    }, "signOut");
     loading.value = false;
-    authState.value = "unauthed";
   }
 
   async function loadSession() {
     error.value = null;
     loading.value = true;
-    await withError(() => authRepository.loadSession(), "loadSession");
+    const data = await withError(
+      () => authRepository.loadSession(),
+      "loadSession",
+    );
+    console.log("loadSession", authState.value, data);
+
+    if (data && data?.id !== "") {
+      userStore.setCurrent(data?.nickname, data?.id);
+      authState.value = "authed";
+    } else {
+      userStore.clearCurrent();
+      authState.value = "unauthed";
+    }
+
     loading.value = false;
-    authState.value = "unauthed";
   }
 
   function initAuthListener() {
@@ -49,8 +69,6 @@ export const useAuthStore = defineStore("auth", () => {
       router.push("/");
     });
   }
-
-  signUp("XTO", "123456");
 
   return {
     isAuth: computed(() => authState.value === "authed"),

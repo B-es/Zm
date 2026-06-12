@@ -304,10 +304,10 @@ interface Props {
     cardId: string;
     title: string;
     description?: string;
-    createdBy?: string;
-    updatedBy?: string;
-    userId?: string;
-    lockedBy?: string | null;
+    createdBy?: number;
+    updatedBy?: number;
+    userId?: number;
+    lockedBy?: number | null;
     canStartEdit?: boolean;
     bannerUrl?: string;
 }
@@ -332,9 +332,9 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     description: "",
-    createdBy: "",
-    updatedBy: "",
-    userId: "",
+    createdBy: -1,
+    updatedBy: -1,
+    userId: -1,
     lockedBy: null,
     canStartEdit: true,
     bannerUrl: "",
@@ -435,7 +435,7 @@ const isLockedByOther = computed(() => {
 });
 
 const lockEditorName = computed(() => {
-    const userId = props.lockedBy || "";
+    const userId = props.lockedBy || -1;
     if (userId === props.userId) return "Вы";
     return userNicknames.value.get(userId) || userId;
 });
@@ -452,7 +452,7 @@ const updatedByName = computed(() => {
     return userNicknames.value.get(props.updatedBy) || props.updatedBy;
 });
 
-const userNicknames = ref<Map<string, string>>(new Map());
+const userNicknames = ref<Map<number, string>>(new Map());
 
 // Load user nicknames for this card
 const loadUserNicknames = async () => {

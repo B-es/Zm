@@ -60,6 +60,7 @@ router.beforeEach(async (to, from) => {
   }
   // Проверка доступа к защищённым маршрутам
   if (to.meta.requiresAuth) {
+    //await authStore.loadSession();
     if (!authStore.isAuth) {
       return { name: "auth" };
     }

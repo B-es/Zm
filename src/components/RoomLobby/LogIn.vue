@@ -17,7 +17,7 @@
             :error="!!error"
             :errorMessage="error"
         />
-        <Button :disabled="loading" @click="handleJoin">
+        <Button :disabled="loading" @click="handleJoin" type="button">
             {{ loading ? "Вход..." : "Войти в комнату" }}
         </Button>
     </FormContainer>
@@ -25,20 +25,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useUserStore } from "@/entities/user/user.store";
 import { useFormState } from "@/shared/composables/useFormState";
 
 const roomStore = useRoomStore();
-const userStore = useUserStore();
 
 const roomNameModel = ref("");
 const roomPasswordModel = ref("");
 const { loading, startLoading, stopLoading } = useFormState();
 const error = ref("");
-
-const userId = computed(() => userStore.current?.id || "");
 
 async function handleJoin() {
     if (!roomNameModel.value || !roomPasswordModel.value) {
@@ -52,7 +48,7 @@ async function handleJoin() {
 
     stopLoading();
 
-    roomStore.trackRoomVisit(userId.value);
+    roomStore.trackRoomVisit();
 }
 </script>
 

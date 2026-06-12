@@ -1,13 +1,11 @@
 <template>
-  <div class="mt-6 flex flex-col gap-y-5 w-80 mx-auto">
-    <slot></slot>
-  </div>
+    <form>
+        <div class="mt-6 flex flex-col gap-y-5 w-80 mx-auto">
+            <slot></slot>
+        </div>
+    </form>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts"></script>
 
-</script>
-
-<style scoped>
-
-</style>
+<style scoped></style>
