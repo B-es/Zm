@@ -1,12 +1,16 @@
 import type { IAuthRepository } from "./auth.repository.interface";
 
-const BASE_URL = "http://127.0.0.1:8000";
-
-async function signUp(payload: {
-  nickname: string;
-  password: string;
+async function signUp({
+  baseUrl,
+  payload,
+}: {
+  baseUrl: string;
+  payload: {
+    nickname: string;
+    password: string;
+  };
 }): Promise<void> {
-  const url = BASE_URL + "/users/register";
+  const url = baseUrl + "/users/register";
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -18,11 +22,17 @@ async function signUp(payload: {
   if (!response.ok) throw new Error(data.detail);
 }
 
-async function signIn(payload: {
-  nickname: string;
-  password: string;
+async function signIn({
+  baseUrl,
+  payload,
+}: {
+  baseUrl: string;
+  payload: {
+    nickname: string;
+    password: string;
+  };
 }): Promise<void> {
-  const url = BASE_URL + "/users/login";
+  const url = baseUrl + "/users/login";
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -36,11 +46,11 @@ async function signIn(payload: {
   localStorage.setItem("refresh_token", data.refresh_token);
 }
 
-async function signOut(): Promise<string> {
+async function signOut(baseUrl: string): Promise<string> {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) throw new Error("No refresh token found.");
 
-  const url = `${BASE_URL}/users/logout?refresh_token=${encodeURIComponent(refreshToken)}`;
+  const url = `${baseUrl}/users/logout?refresh_token=${encodeURIComponent(refreshToken)}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -55,14 +65,20 @@ async function signOut(): Promise<string> {
 }
 
 export class FapiAuthRepository implements IAuthRepository {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
   async signUp(nickname: string, password: string): Promise<void> {
-    await signUp({ nickname, password });
+    await signUp({ baseUrl: this.baseUrl, payload: { nickname, password } });
   }
   async signIn(nickname: string, password: string): Promise<void> {
-    await signIn({ nickname, password });
+    await signIn({ baseUrl: this.baseUrl, payload: { nickname, password } });
   }
   async signOut(): Promise<void> {
-    const response = await signOut();
+    const response = await signOut(this.baseUrl);
     console.log(response);
     if (!response) {
       throw new Error("Sign out failed.");
@@ -78,7 +94,7 @@ export class FapiAuthRepository implements IAuthRepository {
 
     try {
       // Пытаемся получить текущего пользователя через /me
-      const response = await fetch(`${BASE_URL}/users/me`, {
+      const response = await fetch(`${this.baseUrl}/users/me`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -91,7 +107,7 @@ export class FapiAuthRepository implements IAuthRepository {
         return { id: userData.id, nickname: userData.nickname };
       } else if (response.status === 401) {
         // Попробуем обновить access_token через refresh_token
-        const refreshResp = await fetch(`${BASE_URL}/users/refresh`, {
+        const refreshResp = await fetch(`${this.baseUrl}/users/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: refreshToken }),
@@ -101,7 +117,7 @@ export class FapiAuthRepository implements IAuthRepository {
           const { access_token: newAccessToken } = await refreshResp.json();
           localStorage.setItem("access_token", newAccessToken);
           // Повторно запрашиваем /me с новым токеном
-          const meResp = await fetch(`${BASE_URL}/users/me`, {
+          const meResp = await fetch(`${this.baseUrl}/users/me`, {
             headers: { Authorization: `Bearer ${newAccessToken}` },
           });
           if (meResp.ok) {
