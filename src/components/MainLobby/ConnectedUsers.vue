@@ -18,7 +18,6 @@
 import Avatar from "@/shared/components/Avatar.vue";
 import { getPeerColor } from "@/utils/peerColor";
 import { ref } from "vue";
-import { u } from "vue-router/dist/index-Cu9B0wDz.mjs";
 
 const connectedUsers = ref<
     Record<number, { avatarUrl: string; nickname: string }>
