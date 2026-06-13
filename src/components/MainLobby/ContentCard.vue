@@ -27,6 +27,15 @@
             }}</span>
         </button>
 
+        <!-- Кнопка удаления (в правом нижнем углу баннера) -->
+        <button
+            v-if="!isLockedByOther"
+            class="absolute -bottom-2 -right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-red-100 transition-colors shadow-sm"
+            @click.stop="emit('delete', cardId)"
+        >
+            <span class="text-xs">🗑️</span>
+        </button>
+
         <!-- Кнопка разворота (когда контент превышает лимит) -->
         <button
             v-if="isOverflowing && !isEditing && !isLockedByOther"
@@ -53,7 +62,7 @@
         >
             <div
                 ref="cardContentRef"
-                class="flex flex-col max-h-[300px] overflow-hidden relative"
+                class="flex flex-col max-h-[300px] overflow-hidden relative w-[400px]"
             >
                 <input
                     v-model="titleModel"
@@ -81,7 +90,7 @@
                     v-else
                     v-model="descriptionModel"
                     class="text-sm text-gray-600 outline-none resize-none overflow-y-auto"
-                    style="max-height: 250px"
+                    style="max-height: 250px; max-width: 100%"
                     :class="{
                         'bg-gray-50': cardStore.getCardById(cardId)?.marked,
                     }"
@@ -141,15 +150,6 @@
                         calc(-1rem - 1px);
                 "
             >
-                <!-- Кнопка удаления (в правом нижнем углу баннера) -->
-                <button
-                    v-if="!isLockedByOther"
-                    class="absolute -bottom-2 -right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-red-100 transition-colors shadow-sm"
-                    @click.stop="emit('delete', cardId)"
-                >
-                    <span class="text-xs">🗑️</span>
-                </button>
-
                 <!-- Режим просмотра -->
                 <div
                     v-if="bannerUrl && !isEditingBanner"
@@ -431,7 +431,7 @@ const initDescription = props.description;
 
 // Блокировка
 const isLockedByOther = computed(() => {
-    return props.lockedBy && props.lockedBy !== props.userId;
+    return false;
 });
 
 const lockEditorName = computed(() => {
@@ -518,7 +518,7 @@ watch(isLockedByOther, async (locked) => {
     if (locked && isEditing.value) {
         // Кто-то другой заблокировал карточку — отменяем редактирование
         await nextTick();
-        cancel();
+        await cancel();
     }
 });
 
@@ -526,7 +526,7 @@ watch(isLockedByOther, async (locked) => {
 watch(isMarked, async (marked) => {
     if (marked && isEditing.value) {
         await nextTick();
-        cancel();
+        await cancel();
     }
 });
 

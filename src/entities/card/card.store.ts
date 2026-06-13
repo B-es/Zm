@@ -81,14 +81,14 @@ export const useCardStore = defineStore("card", () => {
   const addCard = async (
     roomId: string,
     section: CardSection,
-    userId: string,
+    userId: number,
     title: string,
     description: string,
   ): Promise<Card | null> => {
     if (!roomId) throw new Error("roomId обязателен");
     const now = new Date().toISOString();
     const newCard: Card = {
-      id: crypto.randomUUID(),
+      id: "",
       roomId,
       section,
       title,
@@ -112,7 +112,7 @@ export const useCardStore = defineStore("card", () => {
 
   const updateCard = async (
     cardId: string,
-    userId: string,
+    userId: number,
     data: { title: string; description: string },
   ): Promise<Card | null> => {
     const existing = getCardById(cardId);

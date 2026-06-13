@@ -11,14 +11,14 @@ interface ApiCardResponse {
   description: string;
   marked: boolean;
   banner_url?: string;
-  created_by: string;
+  created_by: number;
   created_at: string;
   updated_at: string;
-  updated_by: string;
+  updated_by: number;
 }
 
 interface ApiUserResponse {
-  id: string;
+  id: number;
   nickname: string;
 }
 
@@ -72,14 +72,10 @@ export class FapiCardRepository implements ICardsRepository {
     return data.map(mapApiCardToCard);
   }
 
-  async saveCard(
-    card: Omit<
-      Card,
-      "id" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy"
-    >,
-  ): Promise<Card> {
+  async saveCard(card: Card): Promise<Card> {
     // Подготавливаем тело запроса в snake_case
     const payload = {
+      id: card.id,
       room_id: card.roomId,
       section: card.section,
       title: card.title,
@@ -87,10 +83,19 @@ export class FapiCardRepository implements ICardsRepository {
       marked: card.marked,
       banner_url: card.bannerUrl,
     };
-    const response = await this.authFetch("/cards/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+
+    let response;
+    if (!card.id) {
+      response = await this.authFetch("/cards/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    } else {
+      response = await this.authFetch(`/cards/${encodeURIComponent(card.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    }
     if (!response.ok) {
       throw new Error(`Failed to save card: ${response.statusText}`);
     }
