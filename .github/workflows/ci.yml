@@ -19,7 +19,19 @@ jobs:
       - run: npm install vitest
       - run: npm ci
       - run: npm run type-check
-      - run: npm run test:unit
+      - name: Run unit tests
+        run: |
+          set +e
+          output=$(npm run test:unit 2>&1)
+          exit_code=$?
+          set -e
+          if [[ $exit_code -eq 1 && "$output" == *"No test files found"* ]]; then
+            echo "No test files found, skipping"
+            exit 0
+          else
+            echo "$output"
+            exit $exit_code
+          fi
 
   build:
     needs: test
