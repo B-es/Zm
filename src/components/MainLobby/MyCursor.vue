@@ -37,7 +37,7 @@ withDefaults(defineProps<Props>(), {
 });
 
 const userStore = useUserStore();
-const userId = userStore.current?.id || "";
+const userId = userStore.current?.id || -1;
 const cursorColor = getPeerColor(userId);
 </script>
 

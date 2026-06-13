@@ -9,7 +9,7 @@ function mapRawRoom(raw: Record<string, unknown>): Room {
     id: raw.id as string,
     title: raw.title as string,
     password: raw.password as string,
-    createdBy: (raw.created_by ?? "") as string,
+    createdBy: (raw.created_by ?? -1) as number,
     createdAt: (raw.created_at ?? "") as string,
   };
 }
@@ -34,7 +34,7 @@ export class NoneRoomRepository implements IRoomRepository {
     const room = {
       password,
       title: roomName,
-      createdBy: "me",
+      createdBy: -1,
       createdAt: new Date().toTimeString(),
     } as Room;
     console.log("Типо вошёл комнату", room);
@@ -47,7 +47,7 @@ export class NoneRoomRepository implements IRoomRepository {
     const rooms: Room[] = [
       {
         createdAt: "131",
-        createdBy: userId,
+        createdBy: -1,
         id: "2",
         title: "title",
         password: "1",
@@ -70,6 +70,7 @@ export class NoneRoomRepository implements IRoomRepository {
         id: "1",
         title: "title",
         password: "1",
+        createdBy: -1,
       },
     ];
     console.log("Комнаты", rooms);

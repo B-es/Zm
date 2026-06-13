@@ -27,8 +27,8 @@
             :error="!!authStore.authError"
             :errorMessage="authStore.authError || ''"
         />
-        <Button :disabled="authStore.loading" @click="handleRegister">
-            {{ authStore.loading ? "Регистрация..." : "Зарегистрироваться" }}
+        <Button :disabled="authStore.isLoading" @click="handleRegister">
+            {{ authStore.isLoading ? "Регистрация..." : "Зарегистрироваться" }}
         </Button>
     </FormContainer>
 </template>

@@ -8,7 +8,7 @@ const CONNECTION_STATUS_KEY = "zm_connection_status";
 
 interface LastConnectionState {
   roomId: string;
-  userId: string;
+  userId: number;
   timestamp: number;
 }
 

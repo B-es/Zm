@@ -42,8 +42,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import Avatar from "./Avatar.vue";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import Avatar from "@/shared/components/Avatar.vue";
+import { useUserStore } from "@/entities/user/user.store";
 import { useFormState } from "@/shared/composables/useFormState";
 
 const props = defineProps<{
@@ -55,7 +55,7 @@ const emit = defineEmits<{
     close: [];
 }>();
 
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const avatarUrlInput = ref("");
 
 const {
@@ -85,7 +85,7 @@ async function saveAvatar() {
     startSaving();
 
     try {
-        await authStore.updateAvatar(avatarUrlInput.value.trim());
+        await userStore.updateAvatar(avatarUrlInput.value.trim());
         emit("close");
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Ошибка сохранения";

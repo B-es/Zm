@@ -52,7 +52,7 @@ export const useAuthStore = defineStore("auth", () => {
     );
     console.log("loadSession", authState.value, data);
 
-    if (data && data?.id !== "") {
+    if (data && data?.id !== -1) {
       userStore.setCurrent(data?.nickname, data?.id);
       authState.value = "authed";
     } else {

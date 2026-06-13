@@ -5,7 +5,7 @@ import { ref } from "vue";
 export const useUserStore = defineStore("user", () => {
   const current = ref<User | null>(null);
 
-  async function setCurrent(nickname: string, id: string) {
+  async function setCurrent(nickname: string, id: number) {
     current.value = { id, nickname } as User;
   }
 

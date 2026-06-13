@@ -8,7 +8,7 @@ function mapRawRoom(raw: Record<string, unknown>): Room {
     id: raw.id as string,
     title: raw.title as string,
     password: raw.password as string,
-    createdBy: (raw.created_by ?? "") as string,
+    createdBy: (raw.created_by ?? -1) as number,
     createdAt: (raw.created_at ?? "") as string,
   };
 }

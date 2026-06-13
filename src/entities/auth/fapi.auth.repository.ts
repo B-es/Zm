@@ -84,12 +84,12 @@ export class FapiAuthRepository implements IAuthRepository {
       throw new Error("Sign out failed.");
     }
   }
-  async loadSession(): Promise<{ id: string; nickname: string }> {
+  async loadSession(): Promise<{ id: number; nickname: string }> {
     const accessToken = localStorage.getItem("access_token");
     const refreshToken = localStorage.getItem("refresh_token");
 
     if (!accessToken || !refreshToken) {
-      return { id: "", nickname: "" }; // нет токенов, сессия не восстановлена
+      return { id: -1, nickname: "" }; // нет токенов, сессия не восстановлена
     }
 
     try {
@@ -104,7 +104,7 @@ export class FapiAuthRepository implements IAuthRepository {
         const userData: { id: string; nickname: string } =
           await response.json();
 
-        return { id: userData.id, nickname: userData.nickname };
+        return { id: Number(userData.id), nickname: userData.nickname };
       } else if (response.status === 401) {
         // Попробуем обновить access_token через refresh_token
         const refreshResp = await fetch(`${this.baseUrl}/users/refresh`, {
@@ -135,6 +135,6 @@ export class FapiAuthRepository implements IAuthRepository {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
     }
-    return { id: "", nickname: "" };
+    return { id: -1, nickname: "" };
   }
 }

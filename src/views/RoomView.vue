@@ -40,18 +40,18 @@ import MyRooms from "@/components/RoomLobby/MyRooms.vue";
 import RoomUserSection from "@/components/RoomLobby/RoomUserSection.vue";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/entities/auth/auth.store";
+import { useUserStore } from "@/entities/user/user.store";
 import { useRoomStore } from "@/entities/room/room.store";
 import { useLeave } from "@/shared/composables/useLeave";
 
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const roomStore = useRoomStore();
 const router = useRouter();
 const { handleLogout } = useLeave();
 
 onMounted(() => {
     // Если пользователь авторизован и есть комната - редиректим на main
-    if (authStore.currentUser && roomStore.roomId) {
+    if (userStore.current && roomStore.roomId) {
         console.log(
             "[RoomView] User authenticated with room, redirecting to main",
         );

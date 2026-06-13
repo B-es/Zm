@@ -33,9 +33,6 @@
         <!-- Курсор клиента -->
         <MyCursor :x="cursorPosition.x" :y="cursorPosition.y" />
 
-        <!-- Курсоры других пользователей -->
-        <PeerCursors />
-
         <!-- Индикатор переподключения -->
         <div
             v-if="connectionStore.isReconnecting"
@@ -69,7 +66,6 @@
 import AvatarBlock from "@/shared/components/AvatarBlock.vue";
 import Button from "@/shared/components/Button.vue";
 import CardSection from "@/components/MainLobby/CardSection.vue";
-import PeerCursors from "@/components/MainLobby/PeerCursors.vue";
 import MyCursor from "@/components/MainLobby/MyCursor.vue";
 import Placeholder from "@/shared/components/Placeholder.vue";
 

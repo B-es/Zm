@@ -4,7 +4,7 @@
 
         <Button
             @click="handleGoogleLogin"
-            :disabled="authStore.loading"
+            :disabled="authStore.isLoading"
             class="flex items-center gap-3 w-full justify-center bg-black border-2 border-black text-white hover:bg-gray-900 hover:border-gray-800 transition"
         >
             <!-- Google Icon -->
@@ -30,7 +30,7 @@
                     fill="#EA4335"
                 />
             </svg>
-            {{ authStore.loading ? "Перенаправление..." : "Google" }}
+            {{ authStore.isLoading ? "Перенаправление..." : "Google" }}
         </Button>
 
         <p v-if="authStore.authError" class="text-sm text-red-500">
@@ -46,7 +46,7 @@ import Button from "@/shared/components/Button.vue";
 const authStore = useAuthStore();
 
 async function handleGoogleLogin() {
-    await authStore.signInWithOAuth("google");
+    //await authStore.signInWithOAuth("google");
 }
 </script>
 

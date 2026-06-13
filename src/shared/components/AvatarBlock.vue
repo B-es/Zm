@@ -77,7 +77,7 @@ const props = defineProps<Props>();
 
 const userStore = useUserStore();
 const cursorColor = computed(() => {
-    const userId = userStore.current?.id || "";
+    const userId = userStore.current?.id || -1;
     return getPeerColor(userId);
 });
 const isModalOpen = ref(false);

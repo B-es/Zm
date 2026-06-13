@@ -5,8 +5,8 @@
     <Placeholder :loading="isLeaving">
         <div class="mb-3">
             <AvatarBlock
-                :avatar-url="current.avatarUrl || defaultAvatarUrl"
-                :title="current.nickname || ''"
+                :avatar-url="current?.avatarUrl || defaultAvatarUrl"
+                :title="current?.nickname || ''"
                 description="На выходе"
             ></AvatarBlock>
         </div>

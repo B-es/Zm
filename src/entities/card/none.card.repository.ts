@@ -49,10 +49,10 @@ export class NoneCardRepository implements ICardsRepository {
         marked: false,
         bannerUrl: "",
 
-        createdBy: "Ys",
+        createdBy: -1,
         createdAt: "31",
         updatedAt: "23",
-        updatedBy: "Ys",
+        updatedBy: -1,
       },
     ];
   }
@@ -67,6 +67,6 @@ export class NoneCardRepository implements ICardsRepository {
     return;
   }
   async getCardEditor(cardId: string): Promise<User> {
-    return { id: "23", nickname: "Mick", password: "1", avatarUrl: "" } as User;
+    return { id: 23, nickname: "Mick", password: "1", avatarUrl: "" } as User;
   }
 }

@@ -5,7 +5,7 @@ import type { IRoomRepository } from "./room.repository.interface";
 interface ApiRoomResponse {
   id: string;
   name: string;
-  created_by: string;
+  created_by: number;
   created_at?: string; // может присутствовать, но в спецификации не указано
 }
 
