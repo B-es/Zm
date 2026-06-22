@@ -22,7 +22,7 @@ withDefaults(
         size?: number;
     }>(),
     {
-        color: "#3b82f6",
+        color: "#FF0000",
         size: 20,
     },
 );

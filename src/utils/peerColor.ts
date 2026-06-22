@@ -25,5 +25,5 @@ export function getPeerColor(userId: number): string {
   //     ] as string;
   // }
   // return colorCache[userId];
-  return "none";
+  return "FF0000";
 }

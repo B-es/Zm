@@ -1,12 +1,12 @@
 <template>
     <FormContainer>
         <Input
-            label="Email"
-            id="email"
-            name="email"
-            type="email"
-            placeholder="Введи email"
-            v-model="emailModel"
+            label="Nickname"
+            id="nickname"
+            name="nickname"
+            type="text"
+            placeholder="Введи никнейм"
+            v-model="nicknameModel"
             :error="!!authStore.authError"
             :errorMessage="authStore.authError || ''"
         />
@@ -35,16 +35,12 @@ import Button from "@/shared/components/Button.vue";
 import Input from "@/shared/components/Input.vue";
 
 const authStore = useAuthStore();
-const router = useRouter();
 
-const emailModel = ref("");
+const nicknameModel = ref("");
 const passwordModel = ref("");
 
 async function handleLogin() {
-    const result = await authStore.signIn(
-        emailModel.value,
-        passwordModel.value,
-    );
+    await authStore.signIn(nicknameModel.value, passwordModel.value);
 }
 </script>
 
